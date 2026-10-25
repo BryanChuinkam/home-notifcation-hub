@@ -13,12 +13,12 @@ export function failure(error: unknown) {
     status, headers: { "Cache-Control": "no-store", ...(error instanceof AuthError && error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {}) },
   });
 }
-function sameOrigin(request: Request, origin: string) {
+export function sameOrigin(request: Request, origin: string) {
   if (request.headers.get("origin") !== origin || request.headers.get("sec-fetch-site") === "cross-site") throw new AuthError(403, "This request must come from the dashboard's configured origin.");
 }
-async function readBody(request: Request) {
+export async function readBody(request: Request, maxBytes = 4096) {
   if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") throw new AuthError(415, "Send a JSON request.");
-  if (Number(request.headers.get("content-length")) > 4096) throw new AuthError(413, "The request is too large.");
+  if (Number(request.headers.get("content-length")) > maxBytes) throw new AuthError(413, "The request is too large.");
   const reader = request.body?.getReader();
   if (!reader) throw new AuthError(400, "A request body is required.");
   const chunks: Uint8Array[] = []; let length = 0;
@@ -26,7 +26,7 @@ async function readBody(request: Request) {
     const { done, value } = await reader.read();
     if (done) break;
     length += value.length;
-    if (length > 4096) { await reader.cancel(); throw new AuthError(413, "The request is too large."); }
+    if (length > maxBytes) { await reader.cancel(); throw new AuthError(413, "The request is too large."); }
     chunks.push(value);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); }

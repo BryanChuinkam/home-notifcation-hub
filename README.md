@@ -1,6 +1,6 @@
 # Home Notification Hub
 
-A self-hosted household messaging application for macOS and, later, Raspberry Pi 4. Milestone 1 provides secure single-administrator setup/login, persistent SQLite storage and a responsive dashboard with three clearly labeled mock devices. Messaging and real device integrations are not implemented yet.
+A self-hosted household messaging application for macOS and, later, Raspberry Pi 4. Milestones 1–2 provide secure single-administrator access, persistent SQLite storage, mock-device management, a message composer, durable dispatch/retries and per-device delivery history. All notification results are simulated; real integrations remain pending.
 
 ## Run locally
 
@@ -23,7 +23,7 @@ npm run dev
 
 Open http://127.0.0.1:3000. Create an administrator using the setup secret, a 3–32 character username and a 12–128 character password; then sign in. Setup atomically creates the sole administrator and three sample devices. Once complete, remove HUB_SETUP_SECRET from `.env.local` and restart; setup remains closed because the administrator exists in SQLite. Sessions survive restarts and expire after eight hours; Sign out revokes the current session.
 
-SQLite data lives under ignored `data/development/` and survives rebuilding the app. Migrations run on first database access and through the explicit migration command. Applied migration files are checked for changes and must remain immutable. There is no production reset command. See [local setup and security](docs/ops/administrator-setup.md).
+SQLite data lives under ignored `data/development/` and survives rebuilding the app. The app launcher applies migrations before starting the web server and queue worker; the explicit migration command is also available. Applied migration files are checked for changes and must remain immutable. There is no production reset command. See [local setup and security](docs/ops/administrator-setup.md).
 
 ```sh
 npm run lint
@@ -37,7 +37,18 @@ npm run test:e2e
 npm run check:quiet
 ```
 
-Keep development on loopback. Household access from other devices requires a configured HTTPS origin and trusted reverse proxy in the later deployment milestone. HTTP LAN origins are rejected. `/api/health` is public process liveness; `/api/devices` requires an authenticated session. No mock device represents a verified physical receiver, and no notification is sent.
+Keep development on loopback. Household access from other devices requires a configured HTTPS origin and trusted reverse proxy in the later deployment milestone. HTTP LAN origins are rejected. `/api/health` is public process liveness; `/api/devices` requires an authenticated session. No mock device represents a verified physical receiver, and no notification leaves the application.
+
+## Try mock messaging
+
+Stop any server started before Milestone 2, run `npm ci`, then restart with `npm run dev` (or build and `npm run start`). These commands now start both the Next.js server and a background queue worker. Existing credentials, sessions and devices survive the additive migration. Keep your existing .env.local; do not copy the example over it.
+
+1. Sign in and open Devices to add/edit mock devices, choose capabilities and select a simulated receiver response.
+2. On Overview, choose text/speech/overlay, select compatible recipients, enter a message and review it before sending.
+3. Inspect each device's result and attempts in History. Temporary mock failures retry automatically; permanent rejection fails without retry. Resend creates a new message after revalidating the original recipients.
+4. Test mock devices from Devices. A simulated test never updates physical test evidence or proves display/speech.
+
+The worker continues independently of the browser. `npm run worker:once` processes one batch of up to 20 currently due deliveries; `npm run worker` starts a standalone worker for troubleshooting. Normal app commands already run a worker. Restart the launcher after changing worker/domain code or environment settings; Next.js still hot-reloads frontend changes. See [messaging operations](docs/ops/messaging.md) for queue semantics and limitations.
 
 ## Repository map
 
@@ -46,10 +57,11 @@ AGENTS.md / CLAUDE.md       shared agent rules and compatibility import
 HANDOFF.md                 current state, verification and exact next action
 PRODUCT.md / DESIGN.md     requirements, architecture and UI conventions
 EXECUTION_PLAN.md           milestone progress
-src/app/                   setup/login/dashboard and API route handlers
+src/app/                   setup/login, composer, devices, history and APIs
 src/components/ui/         owned shadcn-style Button/Input primitives
 src/server/auth/           credentials, sessions, throttling and HTTP guards
 src/server/db/             typed Drizzle schema and SQLite connection/migrations
+src/server/notifications/  typed adapters, persistent queue and protected APIs
 migrations/                immutable reviewed SQL and Drizzle journal
 scripts/                   migration, isolated E2E/CI and verification tools
 tests/                     persistence/auth tests and desktop/mobile E2E

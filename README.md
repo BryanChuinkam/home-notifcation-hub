@@ -6,35 +6,19 @@ Home Assistant installation, onboarding, token creation and speaker/TV setup are
 
 Milestone 4 receiver profiles and platform-specific prerequisites are in the [real receiver guide](docs/ops/real-devices.md). Google Broadcast, Android TV appearance and browser push require explicit server profiles and configured HA integrations; hardware validation remains separate.
 
-## Run locally
+## Start and stop
 
-Use Node 22.23.2 and npm 10.9.8. Native SQLite and Argon2 packages are required; use `nvm use` before installing or running commands.
+Use [Start everything / stop everything](docs/ops/daily-operations.md) for the daily startup/shutdown order, Hub+worker commands, Home Assistant VM controls, restarts and status checks. It is the canonical service-operations guide for this Mac setup. After initial configuration, `npm run start:all` starts the UTM/HA guest and Hub+worker; `npm run stop:all` gracefully stops the managed stack. See the guide for the one-time transition from manually started services and Automation permissions.
 
-```sh
-cd /Users/chui0005/Documents/projects/4fun/home-notification-hub
-nvm use
-npm ci
-cp .env.example .env.local
-npm run setup:secret
-```
+For a fresh installation, follow [administrator setup](docs/ops/administrator-setup.md#first-installation). Existing installations keep .env.local and persistent data; setup secrets/accounts are not recreated for a normal restart. Node 22.23.2 and npm 10.9.8 are pinned in this repository.
 
-Put the generated secret into `HUB_SETUP_SECRET` in `.env.local`. Keep `APP_ORIGIN=http://127.0.0.1:3000` for the default loopback server. No default administrator credentials exist.
-
-```sh
-npm run db:migrate
-npm run dev
-```
-
-Open http://127.0.0.1:3000. Create an administrator using the setup secret, a 3–32 character username and a 12–128 character password; then sign in. Setup atomically creates the sole administrator and three sample devices. Once complete, remove HUB_SETUP_SECRET from `.env.local` and restart; setup remains closed because the administrator exists in SQLite. Sessions survive restarts and expire after eight hours; Sign out revokes the current session.
-
-SQLite data lives under ignored `data/development/` and survives rebuilding the app. The app launcher applies migrations before starting the web server and queue worker; the explicit migration command is also available. Applied migration files are checked for changes and must remain immutable. There is no production reset command. See [local setup and security](docs/ops/administrator-setup.md).
+## Verify the application
 
 ```sh
 npm run lint
 npm run typecheck
 npm test
 npm run build
-npm run start
 # Build before browser tests; one isolated temporary database per browser project:
 npx playwright install chromium
 npm run test:e2e
@@ -45,20 +29,20 @@ Keep development on loopback. Household access from other devices requires a con
 
 ## Try mock messaging
 
-Stop any server started before Milestone 2, run `npm ci`, then restart with `npm run dev` (or build and `npm run start`). These commands now start both the Next.js server and a background queue worker. Existing credentials, sessions and devices survive the additive migration. Keep your existing .env.local; do not copy the example over it.
+Start the Hub using the [daily guide](docs/ops/daily-operations.md#start-everything). It starts both web and worker; Home Assistant is optional for mock-only use.
 
 1. Sign in and open Devices to add/edit mock devices, choose capabilities and select a simulated receiver response.
 2. On Overview, choose text/speech/overlay, select compatible recipients, enter a message and review it before sending.
 3. Inspect each device's result and attempts in History. Temporary mock failures retry automatically; permanent rejection fails without retry. Resend creates a new message after revalidating the original recipients.
 4. Test mock devices from Devices. A simulated test never updates physical test evidence or proves display/speech.
 
-The worker continues independently of the browser. `npm run worker:once` processes one batch of up to 20 currently due deliveries; `npm run worker` starts a standalone worker for troubleshooting. Normal app commands already run a worker. Restart the launcher after changing worker/domain code or environment settings; Next.js still hot-reloads frontend changes. See [messaging operations](docs/ops/messaging.md) for queue semantics and limitations.
+The worker continues independently of the browser. See [daily operations](docs/ops/daily-operations.md#optional-services-and-data) for standalone-worker controls and [messaging operations](docs/ops/messaging.md) for queue semantics and limitations.
 
 ## Configure Home Assistant after first setup
 
 The Hub can run with HA variables blank. To use real targets, install/configure a reachable Home Assistant instance separately, set HOME_ASSISTANT_URL, the pinned HOME_ASSISTANT_ADDRESS and HOME_ASSISTANT_TOKEN only on the server, then restart. Open Settings to discover/register supported targets and Devices to explicitly send a test. Confirm physical output separately in its delivery details.
 
-Follow [the complete Home Assistant guide](docs/ops/home-assistant.md), including first-run commands, macOS hosting/networking choices, token setup, allowed addresses/ports, TTS limitations and manual verification. These commands do not install Home Assistant automatically. Keep tokens out of browser fields and chat.
+Follow [the complete Home Assistant guide](docs/ops/home-assistant.md) for macOS hosting/networking, token setup, allowed addresses/ports, TTS limitations and manual verification. Daily service controls live in the consolidated operations guide. The Hub does not install Home Assistant automatically. Keep tokens out of browser fields and chat.
 
 ## Repository map
 

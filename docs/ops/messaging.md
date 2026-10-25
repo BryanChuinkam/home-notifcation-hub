@@ -1,14 +1,12 @@
-# Mock messaging and queue operation
+# Messaging and queue behavior
 
 Milestone 2 introduced mock-only messaging. Milestone 3 adds separately labeled real Home Assistant dispatch; follow [HA setup](home-assistant.md). The mock behavior described here is unchanged. Registration accepts the server-owned mock adapter, text/speech/overlay capabilities, computer/speaker/TV categories and deterministic simulated responses. Browser registration never accepts target URLs, webhooks, Home Assistant tokens or arbitrary adapter names. HA destinations are derived from a server-configured instance. Physical delivery, display, speech and acknowledgment are unverified regardless of a mock result.
 
 ## Run and upgrade
 
-Keep the existing .env.local and persistent DATABASE_PATH. Stop a pre-Milestone-2 server, install the lockfile with `npm ci`, then run `npm run dev` or `npm run build` followed by `npm run start`. The launcher loads configuration, applies pending migrations once before spawning processes, and starts Next.js plus a queue worker using the same SQLite path. This is one application project with two processes, not an external queue service. tsx is now an exact runtime dependency for the worker and migration commands.
+Use [Start everything / stop everything](daily-operations.md) for startup/shutdown, dependency updates, restart requirements and worker controls. That guide owns service operation; this page owns queue behavior and delivery evidence. The supervised web/worker pair shares the configured SQLite database; there is no external queue server.
 
 Migration 0001 adds mock behavior to existing devices (default acceptance), messages, deliveries and attempts. Migration 0000 is unchanged. Upgrade tests preserve administrator credentials, existing sessions and device fixtures from the original schema. Back up persistent data before operational upgrades; no destructive reset is provided. The worker uses the same restrictive file permissions, foreign keys, WAL and busy timeout as the web app.
-
-The launcher propagates termination to both children, waits for closure and force-stops unresponsive children after 12 seconds. An unexpected web/worker exit stops the other process so a dead worker is not silently left behind. Next.js UI changes hot-reload in dev; restart the launcher for worker/domain or environment changes. Configuration is not refreshed automatically in the worker.
 
 ## Sending and status evidence
 
@@ -30,11 +28,11 @@ Acknowledgment is never fabricated. Device mock tests are recorded as test messa
 
 The worker polls every 500 ms, processes batches of at most 20 due deliveries and claims work inside an immediate SQLite transaction. Adapter configuration and send calls execute outside the transaction, with a 10-second overall deadline and AbortSignal. A stable per-delivery idempotency key is supplied on every attempt.
 
-A claim has a random lease token and 30-second expiry. Expired processing attempts become interrupted; unfinished deliveries are requeued unless they already consumed three attempts. Completion is fenced by token/state so a stale worker cannot overwrite a newer attempt. Transient failures retry after 1 second then 2 seconds, with a maximum of three attempts total. Permanent failures do not retry. Thrown provider errors become a fixed sanitized code; secrets/provider exception text are not stored or returned. Future real adapters must normalize results into the typed contract.
+A claim has a random lease token and 30-second expiry. Expired processing attempts become interrupted. Mock deliveries are requeued within the three-attempt budget; real Home Assistant deliveries end failed with ha_outcome_unknown and are not automatically repeated. Completion is fenced by token/state so a stale worker cannot overwrite a newer attempt. Transient failures retry after 1 second then 2 seconds, with a maximum of three attempts total. Permanent failures do not retry. Thrown provider errors become a fixed sanitized code; secrets/provider exception text are not stored or returned. Adapters normalize results into the typed contract.
 
-Delivery is at least once in the face of ambiguous outcomes. Leases and idempotency keys do not guarantee physical exactly-once delivery; a future real receiver must honor the key to deduplicate. The mock adapter performs no network I/O. No live integration was exercised.
+Leases and idempotency keys do not guarantee physical exactly-once delivery. Real ambiguous outcomes stop without automatic retry; check the receiver before an explicit resend. Mock retries remain simulations and perform no network I/O. Automated fixture checks do not establish live receiver behavior.
 
-Ambiguous real HA POST outcomes are not automatically retried, and their simulated flag stays false even on failure. Both processes must be running for normal operation. If records stay queued, restart through the documented launcher rather than running only next dev/start. `npm run worker:once` handles one due batch and exits nonzero on processing errors; it does not wait through future retry delays. Public /api/health is process liveness, not queue/readiness or device availability. Retention/pruning and deployment supervision remain later operational work; history grows until an authorized retention feature is added.
+Ambiguous real HA POST outcomes are not automatically retried, and their simulated flag stays false even on failure. For stalled queues, use the [status/recovery checks](daily-operations.md#status-checks-and-recovery); web liveness alone does not establish worker or receiver readiness. Retention/pruning and deployment supervision remain later operational work; history grows until an authorized retention feature is added.
 
 ## Device changes and history
 

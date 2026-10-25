@@ -4,7 +4,7 @@ Read HANDOFF.md once at startup, inspect branch and working tree, then load only
 
 ## Authority and bounded work
 
-The supplied [reusable workflow](docs/reference/reusable-project-workflow.txt) and [project adaptation](docs/reference/workflow-adoption.md) govern project management. The [implementation specification](docs/reference/implementation-specification.md) defines the product. The adoption document narrowed the initial task to scaffolding. PRs #1/#2 are merged and promoted to main through PR #3; Milestone 2 is promoted through PR #5; the owner selected Milestone 3 on 2026-10-25. Follow its bounded plan and stop before unsupported hardware work.
+The supplied [reusable workflow](docs/reference/reusable-project-workflow.txt) and [project adaptation](docs/reference/workflow-adoption.md) govern project management. The [implementation specification](docs/reference/implementation-specification.md) defines the product. The adoption document narrowed the initial task to scaffolding. PRs #1/#2 are merged and promoted to main through PR #3; Milestone 2 is promoted through PR #5; Milestone 3 and HA setup docs are merged into staging through PRs #6/#7; the owner selected Milestone 4 on 2026-10-25 and may supply TV models later. Follow its bounded plan and stop before unsupported hardware work.
 
 Before substantive changes record outcome, scope, acceptance and stopping point. Complete the selected scope, verify, update HANDOFF.md and the plan, then stop. Prefer one agent. Do not rewrite or repeatedly load the full reference documents.
 
@@ -47,3 +47,7 @@ Only server-owned adapters: mock and optionally home_assistant; never accept tar
 ## Home Assistant boundary
 
 Configure HA origin, pinned private/loopback address and token only on the server. Never expose or accept browser tokens, target URLs or arbitrary action names. Keep redirects disabled, TLS verification enabled and methods/paths/deadlines/response sizes bounded. Discovery/registration requires auth and matching Origin; registration re-discovers server-derived capabilities. Do not automatically retry ambiguous HA POST outcomes. Record API dispatch and manual physical observation separately; never fabricate display/speech/acknowledgment. No actual hardware was tested by fixture runs.
+
+## Explicit receiver profiles
+
+Milestone 4 uses optional server-only HOME_ASSISTANT_DEVICE_PROFILES for Google SDK room Broadcast, bounded legacy Android TV notification presentation and one named HA HTML5 browser subscription. Validate profiles strictly, derive registration recipes on the server and fail closed after profile removal/retargeting. Never discover generic SDK/HTML5 actions as individual recipients or send without explicit room/browser targets. Modern notify TITLE comes from advertised features. No arbitrary data, images, paths, URLs or commands. Real-send lease expiry ends unknown without automatic retry; mocks retain recovery retries. Receiver installation/OAuth/HTTPS/subscriptions and physical evidence remain separate operator actions, not inferred from profile syntax.

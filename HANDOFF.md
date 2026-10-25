@@ -2,9 +2,9 @@
 
 ## Current task and delivery state
 
-2026-10-25: owner selected Milestone 2. Active branch: `feat/messaging-mvp`, based on staging `9230aeceec2ec4ca97e342883b3778d50f92c140`. The pending release handoff was carried forward and reconciled here. PRs #1/#2 remain merged; PR #3 promoted Milestone 1 to main at `949fb2cd420fa10caa788a15d4222d6ddf0c6e5d`. Milestone 2 is implemented and locally verified; its feature PR is the delivery record for exact-head CI/merge state. Nothing from this milestone is merged or deployed yet.
+2026-10-25: owner selected Milestone 2. Active branch: `feat/messaging-mvp`, based on staging `9230aeceec2ec4ca97e342883b3778d50f92c140`. The pending release handoff was carried forward and reconciled here. PRs #1/#2 remain merged; PR #3 promoted Milestone 1 to main at `949fb2cd420fa10caa788a15d4222d6ddf0c6e5d`. Milestone 2 is implemented and locally verified; [PR #4](https://github.com/BryanChuinkam/home-notifcation-hub/pull/4) is the delivery record for exact-head CI/merge state. Nothing from this milestone is merged or deployed yet.
 
-Owner's latest instruction is **Local runner**, superseding the briefly selected Cloud destination. No Cloud push/PR/run was started for this milestone. Provision a fresh isolated runner, confirm online/idle, set/read CI_RUNNER=local, then perform the authorized feature push and accompanying PR to staging. Leave it open for owner review; do not merge or start Milestone 3 automatically.
+Owner's latest instruction is **Local runner**, superseding the briefly selected Cloud destination. No Cloud push/PR/run was started for this milestone. The initial feature push/PR used a fresh isolated Local runner with CI_RUNNER=local read back. Follow-up pushes still require the fresh destination choice in AGENTS.md. Leave it open for owner review; do not merge or start Milestone 3 automatically.
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Owner's latest instruction is **Local runner**, superseding the briefly selected
 
 ## Verification
 
-Tested source/config manifest SHA-256: `ad1998dffcd868767823ea77d851b527969e8b0188081925ad30d0ca13bcc5c1` (sorted relative path + NUL + bytes + NUL over src/scripts/tests/migrations and top-level app/test/config files and package files). The feature commit captures that content; its PR records the exact Git head and current CI result.
+Tested source/config manifest SHA-256: `8b226b738acf1e1a8f7cadde40f80581935c48d7839a962af8c8329e462aa678` (sorted relative path + NUL + bytes + NUL over src/scripts/tests/migrations and top-level app/test/config files and package files). The feature commit captures that content; its PR records the exact Git head and current CI result.
 
 On macOS ARM64 with Node 22.23.2/npm 10.9.8:
 
@@ -25,6 +25,7 @@ On macOS ARM64 with Node 22.23.2/npm 10.9.8:
 - A real original-schema upgrade fixture preserves the admin password hash, session token digest and all three device fixtures while applying the new migration, then successfully processes queued mock work.
 - `npm run test:e2e`: **2/2 complete desktop/mobile Chromium journeys passed** through setup/login, registry CRUD and testing, incompatible-mode blocking, preview/multi-recipient send, automatic retry, detailed outcomes, resend, deletion with retained history, rejection reporting and logout/unauthenticated redirects. These use actual separate worker processes and owned temporary databases on loopback 3217/3218.
 - Axe found zero violations for configured WCAG tags on tested setup/login/composer/devices/history/detail screens; overflow assertions passed. Desktop/mobile screenshots were reviewed in a bounded pass and one correction pass. Detector's system-font warning is accepted for the inherited Operate interface.
+- Initial Local Linux ARM64 [run 40196461338](https://github.com/BryanChuinkam/home-notifcation-hub/actions/runs/40196461338) passed lint/types/64 tests/build and the mobile journey, but the desktop axe scan caught a missing title during a redundant route refresh. The fix removes refreshes after already-applied local mutations/new-ID navigation and explicitly asserts title readiness before full unchanged axe scans. Full local checks and both browser journeys passed again; inspect PR #4 for the final-head CI result.
 - npm lockfile audit reported zero vulnerabilities. No real device, household database, administrator credentials or notification service was used. Initial generated next-env.d.ts dev-type changes were preserved through normal Next type generation; no unrelated user file was reset.
 
 ## Next action and limits

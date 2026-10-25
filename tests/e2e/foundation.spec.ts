@@ -2,6 +2,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 const username = "household", password = "e2e-only-password-12345", secret = "e2e-fixture-only-secret-not-for-live-use-123456";
 async function inspect(page: Page, info: TestInfo, name: string) {
+  await expect(page).toHaveTitle("Home Notification Hub");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations).toEqual([]);
   await page.screenshot({ path: info.outputPath(`${name}.png`), fullPage: true });

@@ -17,7 +17,7 @@ export function Composer({ devices }: { devices: RegisteredDevice[] }) {
   function preview(event: FormEvent) { event.preventDefault(); if (ready) { setError(""); setReview(true); } }
   async function send() {
     setBusy(true); setError("");
-    try { const result = await api<{ id: string }>("/api/messages", { method: "POST", body: JSON.stringify({ title, body, mode, priority, recipients }) }); router.push(`/history/${result.id}`); router.refresh(); }
+    try { const result = await api<{ id: string }>("/api/messages", { method: "POST", body: JSON.stringify({ title, body, mode, priority, recipients }) }); router.push(`/history/${result.id}`); }
     catch (error) { setError(errorText(error)); }
     finally { setBusy(false); }
   }

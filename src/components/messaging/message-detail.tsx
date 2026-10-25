@@ -17,7 +17,7 @@ export function MessageDetail({ initial }: { initial: Detail }) {
     window.addEventListener("focus", refresh);
     return () => { alive = false; clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, [initial.id, pending]);
-  async function resend() { setBusy(true); setError(""); try { const result = await api<{ id: string }>(`/api/messages/${message.id}/resend`, { method: "POST" }); router.push(`/history/${result.id}`); router.refresh(); } catch (error) { setError(errorText(error)); } finally { setBusy(false); } }
+  async function resend() { setBusy(true); setError(""); try { const result = await api<{ id: string }>(`/api/messages/${message.id}/resend`, { method: "POST" }); router.push(`/history/${result.id}`); } catch (error) { setError(errorText(error)); } finally { setBusy(false); } }
   return <div><Link href="/history" className="text-sm text-primary underline underline-offset-4">Back to history</Link><h1 className="mt-6 break-words text-3xl font-semibold tracking-tight">{message.title || "Message details"}</h1><p className="mt-2 text-sm text-muted-foreground">{dateLabel(message.createdAt)} · Sent by {message.senderName}</p>
     <p className="mt-6 rounded-lg bg-muted p-4 text-sm">All results below are simulated. Acceptance is a mock receiver response; it does not prove display, speech or acknowledgment on a physical device.</p>
     <div className="mt-6 rounded-xl border border-border bg-white p-5"><p className="whitespace-pre-wrap break-words">{message.body}</p><p className="mt-4 text-sm capitalize text-muted-foreground">{message.mode} · {message.priority} priority · {message.kind === "test" ? "Device test" : "Household message"}</p></div>

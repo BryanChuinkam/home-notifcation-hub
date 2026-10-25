@@ -2,12 +2,10 @@
 
 Approved long-term requirements are preserved in [the source specification](reference/implementation-specification.md); the [workflow adoption](reference/workflow-adoption.md) governs bounded delivery. The initial documentation/scaffold task is complete and PR #1 is merged into staging.
 
-## Current task: Milestone 1
+## Current task: Milestone 2
 
-On 2026-10-25 the owner requested rebase/continue after PR #1 merged. The selected [authenticated foundation plan](plans/01-foundation.md) covers SQLite/Drizzle and immutable migrations, secure one-time single-admin setup, credentials/sessions/authorization, CSRF/origin checks, persistent throttling, stored sample devices, and a responsive authenticated shell.
+The owner selected [the messaging MVP](plans/02-messaging.md) after Milestone 1 was merged into staging/main. Scope: mock-device registration/edit/disable/removal and tests, typed mock adapters, persistent delivery queue, transactional multi-recipient messages, capability validation, bounded retries/recovery, preview composer and per-device history/resend. The pending release handoff is carried forward.
 
-Acceptance: real SQLite persistence/concurrent-setup/security tests, strict lint/types/build, desktop/mobile Playwright and axe journeys, and native platform evidence with remaining limits recorded. Stop when this scope is verified and delivered for PR review. No live hardware calls, pilot credentials or deployment are needed.
+Acceptance: authorized/origin-checked and bounded operations; no partial inserts; unique recipient IDs; processing outside database locks; fenced recovery, deadlines and retry exhaustion; retained removed-device history; tested migration from the Milestone 1 schema; complete desktop/mobile journeys and accessibility checks. All notifications remain simulated. Stop at verified PR delivery; no live credentials, discovery or physical sends.
 
-Deferred: device CRUD, typed dispatcher/mock adapter sends, durable queue/retries/history (Milestone 2), then Home Assistant/ntfy, groups/templates, trusted HTTPS, application Compose and pilot/Pi deployment. Windows/Intel/physical hardware behavior is not verified by Linux ARM64 container tests.
-
-Out of scope: custom push infrastructure if established integrations suffice, bypassing Roku restrictions, public exposure, Kubernetes/Redis, paid services or unapproved cloud compute. Registration never proves a device is online; dispatch never proves someone saw/heard a notification.
+Deferred: Home Assistant integration and discovery (Milestone 3), physical devices/receiver confirmation, groups/templates, trusted HTTPS, application Compose, tested backup/restore and pilot/Pi deployment. No arbitrary target URLs, cloud database, paid service, Redis/Kubernetes or public exposure is introduced. Registration never proves connectivity; acceptance never proves display, speech or acknowledgment.

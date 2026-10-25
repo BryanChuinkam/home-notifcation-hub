@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import type { HomeAssistantStatus } from "../../lib/home-assistant";
-export interface HomeAssistantConfig { origin: URL; address: string; token: string }
+import { parseProfiles, type DeviceProfile } from "./profiles";
+export interface HomeAssistantConfig { origin: URL; address: string; token: string; profiles?: DeviceProfile[] }
 export function approvedAddress(address: string) {
   const family = isIP(address);
   if (family === 4) {
@@ -22,6 +23,7 @@ export function homeAssistantConfiguration(env: Record<string, string | undefine
     if (!["http:", "https:"].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash || !(port === 8123 || (origin.protocol === "http:" && port === 80) || (origin.protocol === "https:" && port === 443))) return fail("Home Assistant requires an HTTP(S) origin without credentials/path/query, on port 8123, HTTP port 80 or HTTPS port 443.");
     const address = env.HOME_ASSISTANT_ADDRESS?.trim() || (isIP(hostname) ? hostname : "");
     if (!approvedAddress(address) || (isIP(hostname) && hostname !== address)) return fail("Pin HOME_ASSISTANT_ADDRESS to the same approved private/loopback IP used by the server. Public, link-local and mismatched literal addresses are rejected.");
-    return { config: { origin, address, token }, status: { configured: true, message: "Server configuration is present. Discover targets to test Home Assistant API access; physical delivery is unverified." } };
+    const profiles = parseProfiles(env.HOME_ASSISTANT_DEVICE_PROFILES);
+    return { config: { origin, address, token, profiles }, status: { configured: true, message: "Server configuration is present. Discover targets to test Home Assistant API access; physical delivery is unverified." } };
   } catch { return fail("Home Assistant configuration is invalid. Check the server environment and restart the app."); }
 }

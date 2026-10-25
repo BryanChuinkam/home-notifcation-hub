@@ -2,6 +2,8 @@
 
 Milestone 3 implements the integration and tests it with owned fixtures. A separate HAOS instance has now been installed in UTM on the development Mac; its onboarding endpoint responds. On 2026-10-25 the owner reported a successful send to a Google Home speaker, but not TVs. The report does not include models, selected modes, exact messages or per-target API outcomes; TV delivery remains unresolved and broad hardware compatibility is not established. This is separate from application deployment. You can start the Hub with all HA variables blank and use the existing mock devices first.
 
+For Google Broadcast room profiles, Android TV overlay appearance, native Companion notifications and targeted browser push, continue with the [real receiver guide](real-devices.md). TV models can be supplied later; no model-specific success is assumed.
+
 ## First run of the Hub
 
 From the repository root, use the pinned Node/npm versions. These are separate commands:
@@ -115,7 +117,7 @@ Supported recipes:
 
 [Notify documentation](https://www.home-assistant.io/integrations/notify/) distinguishes entity-based and older device-specific actions. A Companion app receiver may depend on internet push services and OS permissions/background behavior. [TTS documentation](https://www.home-assistant.io/integrations/tts/) covers provider/media requirements. Player eligibility uses the [HA core PLAY_MEDIA feature flag](https://github.com/home-assistant/core/blob/dev/homeassistant/components/media_player/const.py), not its friendly name/model. Cast players must be able to fetch HA's audio URLs; an internal URL pointing only to localhost or an untrusted certificate can prevent speech even if the Hub reaches HA.
 
-This milestone implements Cast/media-player TTS, not Google Assistant Broadcast. SDK Broadcast has separate cloud OAuth and targeting behavior; it is not silently substituted. TTS may interrupt playback; volume and media restoration are not controlled here. Priority is retained in Hub history but is not mapped to platform-specific critical notifications. HA overlay and acknowledgment capabilities are not advertised. Google TV overlay setup, model-specific speaker behavior, Chrome push, Windows agents and Roku alternatives still need Milestone 4 work and physical evidence.
+The Milestone 3 baseline implements Cast/media-player TTS. Milestone 4 adds explicit server-configured Google Assistant Broadcast profiles, described in the receiver guide. SDK Broadcast has separate cloud OAuth and targeting behavior; it is not silently substituted. TTS may interrupt playback; volume and media restoration are not controlled here. Priority is retained in Hub history but is not mapped to platform-specific critical notifications. Acknowledgment is not advertised. Milestone 4 adds configured legacy Android TV overlay profiles and HA browser-push profiles; model-specific behavior still needs physical evidence. Windows/Roku setup and limitations are documented separately.
 
 ## Google Home speakers and TVs
 
@@ -126,14 +128,14 @@ First identify the intended TV behavior:
 | Intended result | Required HA setup | Current Hub behavior |
 | --- | --- | --- |
 | Spoken message through a Cast-capable TV | Google Cast media player plus a working TTS provider; TV/player available and able to fetch HA audio | A discovered TTS/player pair can be registered for speech when PLAY_MEDIA is advertised. That flag does not prove the TV will play it. |
-| Text over the picture on Android TV/Google TV | Compatible Notifications for Android TV receiver app on the TV, its required permissions, and the HA notification integration | Register the resulting supported notify entity/action as a text target. The Hub uses basic notification text; custom overlay mode/options are not implemented. |
+| Text over the picture on Android TV/Google TV | Compatible Notifications for Android TV receiver app on the TV, its required permissions, and the HA notification integration | Register the resulting supported notify entity/action as a text target. The Hub uses basic notification text; advanced overlay options require the explicit legacy-action profile in the receiver guide; basic notify text remains available. |
 | Text on another TV platform | A supported notification receiver/integration for that model | A media-player entity alone does not establish text/overlay support. Roku and other platform-specific alternatives remain later work. |
 
 For speech, test the same provider/player combination directly in HA's Developer tools → Actions with `tts.speak`. Check the TV is available, awake, not muted, and using the intended audio output. Confirm the TV can fetch the generated audio from HA's LAN URL; a URL pointing at localhost, an unreachable host or an untrusted certificate can prevent playback. Use the [Google Cast documentation](https://www.home-assistant.io/integrations/cast/) for discovery/known-host options. Successful speaker playback does not prove another receiver can play the same audio or is reachable.
 
 For Android TV/Google TV text, use the receiver app **on the TV**, not only the phone sender app. Grant notification access and display-over-other-apps permissions where available, then add **Notifications for Android TV / Fire TV** under HA Settings → Devices & services. Follow the [official integration instructions](https://www.home-assistant.io/integrations/nfandroidtv/); compatibility and permissions must be checked on the actual model. Test its `notify.send_message` action against the resulting TV notify entity in HA before rediscovering/registering it in the Hub. Older installations may expose a device-specific notify action instead. An eligible basic notify target can display text through its receiver even though the Hub does not advertise a separate overlay capability.
 
-If the TV still fails, record its make/model/OS, speech versus text, HA integration/entity, whether the direct HA action works, Hub History status and actual receiver behavior. This distinguishes receiver/network configuration from a Hub dispatch issue. No live troubleshooting action is performed by these documentation updates. Device-specific fixes and validation remain Milestone 4 work.
+If the TV still fails, record its make/model/OS, speech versus text, HA integration/entity, whether the direct HA action works, Hub History status and actual receiver behavior. This distinguishes receiver/network configuration from a Hub dispatch issue. No live troubleshooting action is performed by these documentation updates. Device-specific validation remains Milestone 4 owner work; receiver profiles are documented in the receiver guide.
 
 ## Test and record evidence
 

@@ -1,6 +1,6 @@
 # Hardware research and validation
 
-Research checked 2026-10-25; the initial Home Assistant notify/entity/TTS adapter is implemented and fixture-tested in Milestone 3. HAOS 18.3 is installed in a bridged UTM VM on the development Mac. The owner reported successful sending to a Google Home speaker on 2026-10-25, but not TVs. Models, delivery mode, exact message and API/physical evidence details were not supplied; TV delivery remains unresolved. See [HA setup](home-assistant.md).
+Research checked 2026-10-25; the initial Home Assistant notify/entity/TTS adapter is implemented and fixture-tested in Milestone 3. HAOS 18.3 is installed in a bridged UTM VM on the development Mac. The owner reported successful sending to a Google Home speaker on 2026-10-25, but not TVs. Models, delivery mode, exact message and API/physical evidence details were not supplied; TV delivery remains unresolved. See [HA setup](home-assistant.md) and [receiver profiles/setup](real-devices.md). Milestone 4 adds fixture-tested room Broadcast, legacy TV overlay and targeted browser profiles; those tests do not change the physical evidence below.
 
 | Target | Candidate and limitation |
 | --- | --- |
@@ -26,3 +26,17 @@ For every target above, record: device/model/firmware, receiver and HA versions,
 | TVs | Owner reports sending did not work | Models/platforms, speech versus text, HA direct-action result and Hub per-target outcome not supplied. Follow [TV setup and diagnosis](home-assistant.md#google-home-speakers-and-tvs) before choosing a fix. |
 
 This report is separate from fixture results. No new notifications or live API tests were run while documenting it.
+
+## Milestone 4 implementation versus physical validation
+
+| Path | Implementation / automated evidence | Physical state |
+| --- | --- | --- |
+| Cast/TTS | Existing explicit provider/player mapping retained | Owner-reported Google speaker success; detailed test record pending |
+| Google SDK room Broadcast | Strict server profiles, explicit rooms, no generic untargeted fallback; fixture verified | Google OAuth/integration and specific rooms not configured/tested by agent |
+| Android TV overlay | Strict legacy action/profile with bounded duration/appearance; fixture verified. Modern notify entities remain basic text | Owner TV sends unsuccessful; model/receiver permissions/direct HA result pending |
+| Companion mobile/macOS | Individual notify actions retained; advertised modern TITLE now mapped separately | Receiver setup and physical validation pending |
+| Windows agent | Existing individual HA notify actions/entities can be used; compatible installation steps documented | No Windows host or compatible agent/integration tested |
+| Chrome/HTML5 | One configured HA browser subscription per profile; fixture verified | HTTPS/domain setup, subscription and physical delivery pending |
+| Roku | System overlays unavailable; explicitly select a speaker as a separate recipient | No Roku notification capability claimed |
+
+Models can be supplied later. New profiles do not create permission, OAuth consent, HA integrations, receiver apps or subscription registrations. No physical observation record was added on behalf of the owner.

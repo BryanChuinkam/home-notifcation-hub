@@ -4,15 +4,18 @@ import { isIP } from "node:net";
 import { z } from "zod";
 import type { HomeAssistantConfig } from "./config";
 import type { DiscoveredTarget, HomeAssistantTarget } from "../../lib/home-assistant";
+import { broadcastRooms, notifyService, profileId, profilesSchema, tvPresentation } from "./profiles";
 export type HomeAssistantErrorCode = "ha_auth" | "ha_unavailable" | "ha_configuration" | "ha_response" | "ha_rejected" | "ha_timeout" | "ha_outcome_unknown";
 export class HomeAssistantError extends Error { constructor(public code: HomeAssistantErrorCode, public retryable = false) { super(code); } }
 export const MAX_HA_RESPONSE = 2 * 1024 * 1024;
 export type HomeAssistantTransport = (path: string, body: Record<string, unknown> | undefined, signal: AbortSignal) => Promise<unknown>;
-const identifier = /^[a-z0-9_]{1,128}$/;
 const entity = z.string().regex(/^(notify|tts|media_player)\.[a-z0-9_]{1,128}$/);
 export const targetSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("notify_service"), service: z.string().regex(identifier).refine(value => !["notify", "send_message", "reload"].includes(value)), supportsTitle: z.boolean() }).strict(),
-  z.object({ kind: z.literal("notify_entity"), entityId: entity.refine(value => value.startsWith("notify.")) }).strict(),
+  z.object({ kind: z.literal("notify_service"), service: notifyService, supportsTitle: z.boolean() }).strict(),
+  z.object({ kind: z.literal("notify_entity"), entityId: entity.refine(value => value.startsWith("notify.")), supportsTitle: z.boolean().optional() }).strict(),
+  z.object({ kind: z.literal("android_tv"), profileId, service: notifyService, supportsTitle: z.boolean(), presentation: tvPresentation }).strict(),
+  z.object({ kind: z.literal("browser_push"), profileId, browser: z.string().regex(/^[a-z0-9_]{1,128}$/), supportsTitle: z.boolean() }).strict(),
+  z.object({ kind: z.literal("google_broadcast"), profileId, rooms: broadcastRooms }).strict(),
   z.object({ kind: z.literal("tts"), entityId: entity.refine(value => value.startsWith("media_player.")), ttsEntityId: entity.refine(value => value.startsWith("tts.")) }).strict(),
 ]);
 export function createTransport(config: HomeAssistantConfig): HomeAssistantTransport {
@@ -55,6 +58,7 @@ export function createTransport(config: HomeAssistantConfig): HomeAssistantTrans
 const servicesSchema = z.array(z.object({ domain: z.string(), services: z.record(z.string(), z.object({ fields: z.record(z.string(), z.unknown()).optional().default({}) })) })).max(1000);
 const statesSchema = z.array(z.object({ entity_id: z.string(), state: z.string(), attributes: z.object({ friendly_name: z.string().optional(), supported_features: z.number().optional() }).optional().default({}) })).max(10000);
 export function createHomeAssistantClient(config: HomeAssistantConfig, transport = createTransport(config)) {
+  const profiles = profilesSchema.parse(config.profiles ?? []);
   const cleanName = (value: string) => value.replaceAll(config.token, "[redacted]").replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 80) || "Home Assistant target";
   async function discover(signal = AbortSignal.timeout(8000)): Promise<DiscoveredTarget[]> {
     try {
@@ -62,13 +66,25 @@ export function createHomeAssistantClient(config: HomeAssistantConfig, transport
       const services = servicesSchema.parse(servicesInput), states = statesSchema.parse(statesInput);
       const notify = services.find(item => item.domain === "notify")?.services ?? {};
       const targets: DiscoveredTarget[] = [];
+      for (const profile of profiles) {
+        if (profile.kind === "android_tv") {
+          const metadata = notify[profile.service];
+          if (!metadata || !("message" in metadata.fields) || !("data" in metadata.fields)) continue;
+          targets.push({ id: `profile:${profile.id}`, name: cleanName(profile.name), capabilities: ["overlay", "text"], type: "tv", reportedUnavailable: false, target: { kind: "android_tv", profileId: profile.id, service: profile.service, supportsTitle: "title" in metadata.fields, presentation: profile.presentation } });
+        } else if (profile.kind === "browser_push") {
+          const metadata = notify.html5;
+          if (metadata && "message" in metadata.fields && "target" in metadata.fields) targets.push({ id: `profile:${profile.id}`, name: cleanName(profile.name), capabilities: ["text"], type: "computer", reportedUnavailable: false, target: { kind: "browser_push", profileId: profile.id, browser: profile.browser, supportsTitle: "title" in metadata.fields } });
+        } else if (notify.google_assistant_sdk && "message" in notify.google_assistant_sdk.fields && "target" in notify.google_assistant_sdk.fields) {
+          targets.push({ id: `profile:${profile.id}`, name: cleanName(profile.name), capabilities: ["speech"], type: "speaker", reportedUnavailable: false, target: { kind: "google_broadcast", profileId: profile.id, rooms: profile.rooms } });
+        }
+      }
       for (const [service, metadata] of Object.entries(notify)) {
-        if (!identifier.test(service) || ["notify", "send_message", "reload"].includes(service) || !("message" in metadata.fields)) continue;
-        targets.push({ id: `notify-service:${service}`, name: cleanName(service.replaceAll("_", " ")), capabilities: ["text"], type: "computer", reportedUnavailable: false, target: { kind: "notify_service", service, supportsTitle: "title" in metadata.fields } });
+        if (!notifyService.safeParse(service).success || profiles.some(profile => profile.kind === "android_tv" && profile.service === service) || !("message" in metadata.fields)) continue;
+        targets.push({ id: `notify-service:${service}`, name: cleanName(service.replaceAll("_", " ")), capabilities: ["text"], type: service.startsWith("mobile_app_") ? "phone" : "computer", reportedUnavailable: false, target: { kind: "notify_service", service, supportsTitle: "title" in metadata.fields } });
       }
       if (notify.send_message && "message" in notify.send_message.fields) for (const state of states) {
         if (!/^notify\.[a-z0-9_]{1,128}$/.test(state.entity_id)) continue;
-        targets.push({ id: `notify-entity:${state.entity_id}`, name: cleanName(state.attributes.friendly_name ?? state.entity_id), capabilities: ["text"], type: "computer", reportedUnavailable: state.state === "unavailable", target: { kind: "notify_entity", entityId: state.entity_id } });
+        targets.push({ id: `notify-entity:${state.entity_id}`, name: cleanName(state.attributes.friendly_name ?? state.entity_id), capabilities: ["text"], type: "computer", reportedUnavailable: state.state === "unavailable", target: { kind: "notify_entity", entityId: state.entity_id, ...((state.attributes.supported_features ?? 0) & 1 ? { supportsTitle: true } : {}) } });
       }
       if (services.some(item => item.domain === "tts" && item.services.speak)) {
         const providers = states.filter(state => /^tts\.[a-z0-9_]{1,128}$/.test(state.entity_id));
@@ -83,12 +99,31 @@ export function createHomeAssistantClient(config: HomeAssistantConfig, transport
   }
   async function send(target: HomeAssistantTarget, title: string, body: string, signal: AbortSignal) {
     const parsed = targetSchema.safeParse(target); if (!parsed.success) throw new HomeAssistantError("ha_configuration");
+    const recipe = parsed.data;
+    if (recipe.kind === "android_tv" || recipe.kind === "google_broadcast" || recipe.kind === "browser_push") {
+      const profile = profiles.find(item => item.id === recipe.profileId);
+      if (!profile || profile.kind !== recipe.kind || (recipe.kind === "android_tv"
+        ? profile.kind !== "android_tv" || profile.service !== recipe.service || JSON.stringify(profile.presentation) !== JSON.stringify(recipe.presentation)
+        : recipe.kind === "browser_push" ? profile.kind !== "browser_push" || profile.browser !== recipe.browser
+        : profile.kind !== "google_broadcast" || JSON.stringify(profile.rooms) !== JSON.stringify(recipe.rooms))) throw new HomeAssistantError("ha_configuration");
+    }
     const text = title ? `${title}\n${body}` : body;
-    const result = target.kind === "notify_service"
-      ? await transport(`/api/services/notify/${target.service}`, target.supportsTitle ? { title, message: body } : { message: text }, signal)
-      : target.kind === "notify_entity"
-        ? await transport("/api/services/notify/send_message", { entity_id: target.entityId, message: text }, signal)
-        : await transport("/api/services/tts/speak", { entity_id: target.ttsEntityId, media_player_entity_id: target.entityId, message: text, cache: true }, signal);
+    let path: string, payload: Record<string, unknown>;
+    switch (recipe.kind) {
+      case "notify_service":
+        path = `/api/services/notify/${recipe.service}`; payload = recipe.supportsTitle ? { title, message: body } : { message: text }; break;
+      case "notify_entity":
+        path = "/api/services/notify/send_message"; payload = recipe.supportsTitle ? { entity_id: recipe.entityId, title, message: body } : { entity_id: recipe.entityId, message: text }; break;
+      case "android_tv":
+        path = `/api/services/notify/${recipe.service}`; payload = { ...(recipe.supportsTitle ? { title, message: body } : { message: text }), data: { ...recipe.presentation, interrupt: false } }; break;
+      case "browser_push":
+        path = "/api/services/notify/html5"; payload = { ...(recipe.supportsTitle ? { title, message: body } : { message: text }), target: [recipe.browser] }; break;
+      case "google_broadcast":
+        path = "/api/services/notify/google_assistant_sdk"; payload = { message: text, target: recipe.rooms }; break;
+      case "tts":
+        path = "/api/services/tts/speak"; payload = { entity_id: recipe.ttsEntityId, media_player_entity_id: recipe.entityId, message: text, cache: true }; break;
+    }
+    const result = await transport(path, payload, signal);
     if (!Array.isArray(result)) throw new HomeAssistantError("ha_outcome_unknown");
     return result;
   }

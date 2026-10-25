@@ -96,7 +96,9 @@ export function createMessaging(store: Store, options: { clock?: () => number; a
       const expired = tx.select().from(deliveries).where(and(eq(deliveries.state, "processing"), isNotNull(deliveries.leaseUntil), lte(deliveries.leaseUntil, now()))).all();
       for (const target of expired) {
         tx.update(deliveryAttempts).set({ state: "interrupted", completedAt: now(), errorCode: "interrupted" }).where(and(eq(deliveryAttempts.deliveryId, target.id), eq(deliveryAttempts.number, target.attemptCount), eq(deliveryAttempts.state, "processing"))).run();
-        tx.update(deliveries).set({ state: target.attemptCount >= MAX_ATTEMPTS ? "failed" : "queued", leaseToken: null, leaseUntil: null, nextAttemptAt: now(), completedAt: target.attemptCount >= MAX_ATTEMPTS ? now() : null, errorCode: "interrupted" }).where(eq(deliveries.id, target.id)).run();
+        const uncertainRealSend = target.adapter !== "mock";
+        const terminal = uncertainRealSend || target.attemptCount >= MAX_ATTEMPTS;
+        tx.update(deliveries).set({ state: terminal ? "failed" : "queued", leaseToken: null, leaseUntil: null, nextAttemptAt: now(), completedAt: terminal ? now() : null, errorCode: uncertainRealSend ? "ha_outcome_unknown" : "interrupted" }).where(eq(deliveries.id, target.id)).run();
       }
       const target = tx.select().from(deliveries).where(and(eq(deliveries.state, "queued"), lte(deliveries.nextAttemptAt, now()))).orderBy(asc(deliveries.nextAttemptAt), asc(deliveries.id)).get();
       if (!target) return null;

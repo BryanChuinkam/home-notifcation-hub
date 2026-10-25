@@ -40,6 +40,24 @@ test("administrator manages mock devices, sends multi-recipient messages, inspec
   await page.getByRole("button", { name: "Record physical observation" }).click(); await page.getByRole("button", { name: "I heard this test on the speaker" }).click();
   await expect(page.getByText("Manually observed spoken", { exact: false })).toBeVisible(); await expect(page.getByText("Dispatched to Home Assistant", { exact: true })).toHaveCount(1); await inspect(page, info, "ha-test-evidence");
   expect(await page.content()).not.toContain(HA_FIXTURE_TOKEN);
+  // Explicit server profiles use real backend/worker code against our owned fixture only.
+  for (const [profileId, name, method] of [["fixture_tv", "Fixture TV overlay", "Android TV overlay"], ["fixture_broadcast", "Fixture Google room", "Google Assistant Broadcast"], ["fixture_browser", "Fixture Chrome", "Browser push"]]) {
+    await nav(page, "Settings").click(); await page.getByRole("button", { name: "Discover targets" }).click();
+    await expect(page.getByLabel("Discovered target").locator('option[value="notify-service:google_assistant_sdk"]')).toHaveCount(0);
+    await page.getByLabel("Discovered target").selectOption(`profile:${profileId}`); await page.getByLabel("Room", { exact: true }).fill("Fixture room");
+    await expect(page.getByText(method, { exact: false }).first()).toBeVisible();
+    if (profileId === "fixture_tv") await inspect(page, info, "tv-profile-settings");
+    await page.getByRole("button", { name: "Register target" }).click(); await expect(page).toHaveURL(/\/devices$/);
+    await page.getByRole("button", { name: `Send test notification ${name}`, exact: true }).click();
+    await expect(page.getByText(`This sends a real test through Home Assistant to ${name}.`, { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: "Send real test", exact: true }).click(); await expect(page.getByText("Dispatched to Home Assistant", { exact: true })).toHaveCount(1);
+    const result = await (await page.request.get(`/api/messages/${page.url().split("/").pop()}`)).json(); expect(result.message.mode).toBe(profileId === "fixture_tv" ? "overlay" : profileId === "fixture_broadcast" ? "speech" : "text");
+    expect(result.message.deliveries[0].simulated).toBe(false); expect(result.message.deliveries[0].confirmation).toBeNull();
+  }
+  const profiledRequests = await (await page.request.get("http://127.0.0.1:8123/__hnh_fixture_requests", { headers: { Authorization: `Bearer ${HA_FIXTURE_TOKEN}` } })).json();
+  expect(profiledRequests.some((item: { path: string; body: { target?: string[] } }) => item.path === "/api/services/notify/google_assistant_sdk" && JSON.stringify(item.body.target) === '["fixture room"]')).toBe(true);
+  expect(profiledRequests.some((item: { path: string; body: { target?: string[] } }) => item.path === "/api/services/notify/html5" && JSON.stringify(item.body.target) === '["fixture_chrome"]')).toBe(true);
+  expect(profiledRequests.some((item: { path: string; body: { data?: { duration: number; interrupt: boolean } } }) => item.path === "/api/services/notify/fixture_tv" && item.body.data?.duration === 10 && item.body.data.interrupt === false)).toBe(true);
   await nav(page, "Overview").click();
   const cookie = (await page.context().cookies()).find(item => item.name === "hnh_session")!; expect(cookie.httpOnly).toBe(true); expect(cookie.sameSite).toBe("Strict");
   await page.getByRole("checkbox", { name: /Family TV/ }).check(); await page.getByLabel("Message", { exact: true }).fill("Dinner is ready."); await page.getByLabel("Delivery mode").selectOption("speech");

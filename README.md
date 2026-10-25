@@ -4,6 +4,8 @@ A self-hosted household messaging application for macOS and, later, Raspberry Pi
 
 Home Assistant installation, onboarding, token creation and speaker/TV setup are covered in the [Home Assistant setup guide](docs/ops/home-assistant.md). `npm run setup:secret` creates only the Hub setup secret; create the HA access token in Home Assistant.
 
+Milestone 4 receiver profiles and platform-specific prerequisites are in the [real receiver guide](docs/ops/real-devices.md). Google Broadcast, Android TV appearance and browser push require explicit server profiles and configured HA integrations; hardware validation remains separate.
+
 ## Run locally
 
 Use Node 22.23.2 and npm 10.9.8. Native SQLite and Argon2 packages are required; use `nvm use` before installing or running commands.

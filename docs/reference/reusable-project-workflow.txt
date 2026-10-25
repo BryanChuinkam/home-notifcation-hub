@@ -1,0 +1,279 @@
+Reusable Project Workflow for AI-Assisted Software Development
+This document describes a repeatable approach to managing software projects with human developers and AI coding agents. It draws from the ReConvene repository's technology choices, shared instructions, Markdown documentation, token-efficiency practices, verification rules, and local/cloud CI setup.
+It also incorporates a target release workflow with protected staging and main branches, mandatory pull requests, staging validation before production, and automatic deletion of merged task branches. These release controls are additions to the original repository's workflow.
+Keep the technology stack consistent and explicit
+Document the chosen stack in the repository's shared instructions. Agents should work within that stack rather than repeatedly reconsidering frameworks, package managers, and architectural patterns.
+ReConvene uses the following:
+Area
+Technology
+Frontend
+Vite, React 18, strict TypeScript
+Styling and components
+Tailwind CSS, shadcn/ui, Radix primitives
+Server-state management
+TanStack React Query
+Backend
+Supabase Postgres, Auth, Storage, Realtime, and Edge Functions
+Hosting
+Vercel
+Package management
+npm
+Application testing
+Vitest
+Database and authorization testing
+pgTAP
+Browser and accessibility testing
+Playwright and axe
+Continuous integration
+GitHub Actions
+Email
+Resend
+Sign-in bot protection
+Cloudflare Turnstile
+Application AI
+Vercel AI Gateway
+
+Future projects can choose different technologies while retaining the same discipline: one documented stack, reproducible dependencies, standard commands, and clear architectural boundaries.
+Record non-negotiable implementation rules alongside the stack. Examples include enforcing authorization in the database, keeping applied migrations immutable, generating database types, protecting private cached data, and avoiding sensitive information in logs.
+Use repository documentation as shared project memory
+Project instructions and decisions should live in version-controlled files that both humans and coding agents can read. Conversation history and tool-specific memory should not be the only records of important decisions.
+Each document should have a distinct purpose:
+File or directory
+Purpose
+AGENTS.md
+Shared working rules, stack, commands, constraints, verification requirements, and approval policies
+CLAUDE.md
+Small compatibility wrapper importing AGENTS.md
+HANDOFF.md
+Current task, implementation state, deployment state, verification evidence, and next action
+README.md
+Project overview, setup instructions, and common commands
+PRODUCT.md
+Users, product purpose, operating context, and constraints
+DESIGN.md
+Technical architecture and interface conventions
+EXECUTION_PLAN.md
+Delivery checklist and progress
+docs/scope.md
+Approved scope, amendments, and deferred work
+docs/plans/
+Detailed plans for substantial features
+docs/ops/
+Deployment, provisioning, support, and operational procedures
+docs/agent-workflow.md
+Agent usage practices, CI operation, and troubleshooting
+docs/archive/
+Historical handoffs and superseded material
+
+Keep instructions centralized. For example, CLAUDE.md can import AGENTS.md rather than maintaining a second copy of the same rules.
+Separate product scope from operational plans. A document describing how to run a customer pilot should not also serve as the technical build specification.
+Load documentation selectively
+At task startup, inspect the branch and working tree, then read HANDOFF.md once. Read only the relevant sections of the execution plan, feature plan, scope, and design documents.
+The current user request determines the task. When asked to continue an existing project, follow the handoff's next implementation task. Unchecked items elsewhere in the backlog are not automatic instructions to begin work.
+Avoid importing every plan and archive into the agent's startup instructions. A small entry-point file that imports large documents still creates a large context burden.
+Keep the handoff current, compact, and actionable
+Aim for approximately one or two pages of current information. Replace outdated status rather than accumulating a session diary.
+A useful handoff contains:
+Current task and intended outcome.
+Branch and base revision.
+Uncommitted changes.
+What is implemented.
+What is merged.
+What is deployed.
+Verification commands, results, dates, and tested revision.
+Unverified behavior and owner actions.
+Exact next action.
+Links to relevant plans.
+Keep "implemented," "merged," and "deployed" separate. A merged pull request does not prove that database migrations or backend functions have been deployed.
+Archive detailed historical records when they stop being necessary for the next task. Reconcile contradictory statements promptly so future agents do not spend time reconstructing the actual state.
+Begin work with a bounded task brief
+Before substantive work, identify four things:
+Item
+Question it answers
+Outcome
+What concrete result should this task produce?
+Scope
+Which files, behaviors, and plan sections are involved?
+Acceptance
+What observable behavior and checks establish completion?
+Stopping point
+When should work stop?
+
+Infer routine implementation choices from the request and approved plans. Avoid repeatedly asking for permission to perform work already authorized.
+Complete the selected scope, verify it, update the relevant documentation, and stop. Unrelated cleanup and additional phases should become separate tasks.
+For larger features, use independently reviewable phases with a focused branch and pull request for each phase.
+Reduce unnecessary context and tool output
+Token efficiency comes from controlling what enters the agent's context and avoiding repeated investigation.
+Use these practices:
+Search filenames and symbols before opening files.
+Prefer rg and focused line-range reads.
+Avoid dumping generated types, lockfiles, entire migrations, and large logs.
+Begin diff reviews with a summary, then inspect specific files.
+Read historical material only when the task requires it.
+Keep related fixes in the same conversation.
+Use a concise handoff when switching agents or starting unrelated work.
+Keep global instructions and enabled integrations limited to what is useful.
+Run commands through a quiet wrapper where practical:
+scripts/quiet.sh <command>
+npm run check:quiet
+The wrapper should execute the complete command, preserve its exit status, print a short success message, and show a limited failure-log tail when something goes wrong.
+This reduces transcript volume without reducing verification coverage.
+Use agents and skills deliberately
+Default to one coding agent. Delegate bounded investigations when they would otherwise require sweeping many files, and request short conclusions with file references.
+For parallel implementation, assign independent scopes and make one agent responsible for integration and final verification. Avoid multiple agents independently reading the same material or running the same full test suite.
+Keep reusable skills versioned, with their source and version recorded. Share them across coding tools where practical, and keep domain-specific context in the repository.
+Invoke skills when their workflow fits the task. Marketing skills, for example, should support marketing work rather than become automatic prerequisites for database or application changes.
+Track coding-agent, CI, and application AI costs separately
+These are different budgets:
+Budget
+Main controls
+Coding-agent usage
+Context size, model selection, unnecessary repetition, delegation
+CI compute
+Runner choice, triggers, cancellation, duplicate runs
+Application AI
+Provider limits, test fixtures, evaluation scope, application spending caps
+
+Choose model capability appropriate to the task. Reserve stronger reasoning for difficult debugging, authorization, migration design, and other demanding work.
+Use fake AI responses for routine application load tests. Agree on the fixtures, models, run count, and spending limit before real-provider evaluations.
+Measure comparable tasks before and after workflow changes. Smaller context is useful, but it does not establish a guaranteed percentage reduction in billed usage.
+Maintain two permanent branches
+Use staging for integration and release validation, and main for production releases.
+Branch
+Purpose
+Lifecycle
+main
+Production release history
+Permanent and protected
+staging
+Integrated changes awaiting production release
+Permanent and protected
+feat/...
+A focused feature
+Delete after merge
+fix/...
+A focused correction
+Delete after merge
+docs/...
+Documentation changes
+Delete after merge
+chore/...
+Maintenance or tooling
+Delete after merge
+
+The standard delivery flow is:
+Task branch → Pull request → staging
+staging → Deployment and validation → Release pull request → main
+main → Production deployment and verification
+Create task branches from current staging. Every change enters staging through a pull request. Only staging can be the source of a pull request into main.
+Hotfixes follow the same route, using an appropriately shortened validation cycle.
+Enforce branch rules in GitHub
+Protect both permanent branches:
+Require pull requests.
+Require passing checks.
+Require resolution of review conversations.
+Block force pushes.
+Block branch deletion.
+Apply protections to administrators and automation without routine bypasses.
+Require independent approval when an eligible reviewer is available.
+For solo projects, retain PRs, required checks, and explicit owner review without configuring an approval requirement nobody can satisfy. GitHub provides these controls through branch protection settings and rulesets. See the GitHub branch protection documentation.
+Add a required routing check that validates the pull request's source and destination:
+Target: staging. Accept approved task-branch sources.
+Target: main. Accept only staging from the same repository.
+Reject other routes.
+Restricting who can push does not itself enforce the source-branch relationship. Protect changes to the routing workflow through review and controlled ownership.
+Use a history-preserving merge for promotion from the permanent staging branch to main.
+Delete merged branches to prevent clutter
+Enable GitHub's "Automatically delete head branches" setting. Keep deletion protection on staging and main so release PRs cannot remove either permanent branch. See the GitHub automatic branch deletion documentation.
+After merge:
+Confirm the pull request is merged.
+Remove the local task branch when it contains no remaining work.
+Remove associated temporary worktrees when safe.
+Prune obsolete remote-tracking references.
+Do not delete unmerged work merely because a branch is old. For squash-merged branches, confirm completion through the PR record rather than relying only on Git ancestry.
+Support local and cloud CI through one workflow
+Use a repository variable such as CI_RUNNER to select the execution destination.
+Value
+Destination
+Requirements
+local
+Self-hosted developer machine
+Runner online; required services available
+cloud
+GitHub-hosted Ubuntu
+Hosted Actions capacity and allowance
+
+Keep job names and checks consistent across both destinations.
+Before an agent pushes, creates or reopens a PR, merges, or manually triggers CI, obtain an explicit destination choice. One answer can cover a push and the PR created with it; subsequent operations require a new choice.
+The sequence is:
+Confirm Local or Cloud.
+Check destination availability.
+Set and read back CI_RUNNER.
+Perform the authorized operation.
+Verify and report which runner executed the checks.
+If local execution is unavailable, wait for the owner's decision. Do not silently consume cloud compute.
+Remember that a repository variable affects other branches and operations too. Coordinate changes when multiple contributors are active.
+Route untrusted fork contributions to cloud infrastructure rather than the developer's personal machine, and document that exception clearly.
+Isolate local CI from development services
+Self-hosted CI must use separate project identifiers, ports, databases, and application processes.
+ReConvene separates its development and CI Supabase stacks and application servers. It also pins relevant tooling, prevents browser tests from reusing a development server, and checks that tests reach the intended CI services.
+Run cleanup before jobs to recover from interruptions and afterward to remove temporary resources. Cleanup scripts should refuse to target development services.
+The reusable requirement is isolation: CI must not reset a developer's database, interrupt active development, or accidentally pass by connecting to an existing application.
+Choose verification according to the change
+Change
+Required evidence
+Internal documentation
+Diff, links, consistency, whitespace checks
+Application code, configuration, dependencies
+Targeted checks, then full lint, typecheck, unit tests, and build
+Database schema or authorization
+Database reset, database tests, regenerated types, application checks
+User journeys or interface behavior
+Relevant browser, responsive, and accessibility checks
+AI ranking or prompts
+Relevant before-and-after evaluation within budget
+
+Markdown bundled into the application is application code.
+During iteration, run targeted failing tests. Run the required final checks before committing. Repeat successful checks only when relevant inputs change or a concrete concern remains.
+Record the tested revision, commands, results, and limitations. Do not weaken authorization coverage to reduce cost or make a failing suite pass.
+Make required CI checks report a result for every PR
+Documentation-only changes should avoid unnecessary application and database suites. However, skipping an entire required workflow through path filters can leave its check pending and block merging. See the GitHub required-check guidance.
+Use an always-running required gate that:
+Classifies the change.
+Runs the relevant checks.
+Validates PR routing.
+Explicitly accepts permitted skips.
+Rejects failures, cancellations, and missing required results.
+Cancel superseded runs where appropriate. Avoid duplicate expensive suites unless they validate a changed integration state or another concrete risk.
+Make staging a working environment
+A staging branch must have a usable deployment and separate backend to support meaningful release validation.
+Environment
+Purpose
+Data
+Local
+Development and debugging
+Fictional seed data
+CI
+Automated verification
+Disposable test data
+Staging
+Integrated release validation
+Controlled test data
+Production
+Customer use
+Production data
+
+Separate credentials, databases, storage, authentication settings, and provider configuration. Preview and staging deployments must not use production data by accident.
+Validate migrations and backend functions in staging before promotion. Document deployment order because frontend hosting, database migrations, and backend functions may deploy through different mechanisms.
+Prefer backward-compatible migrations that allow old and new application versions to overlap during deployment.
+Close each task with evidence and an accurate project record
+Use focused conventional commits such as feat:, fix:, docs:, test:, chore:, and db:.
+Update relevant execution-plan checkboxes and the handoff in the same commit as the work they describe.
+Each PR should state:
+Problem and resulting behavior
+Scope
+Verification and tested revision
+Deployment requirements
+Known limitations and owner actions
+After the task PR merges, validate staging and remove the task branch. After the release PR merges, verify production and update the deployment record.
+The project record should allow the next developer or agent to identify the current state, understand the verification evidence, and take the next action without reconstructing the entire conversation.

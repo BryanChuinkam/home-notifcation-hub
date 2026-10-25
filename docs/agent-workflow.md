@@ -1,0 +1,15 @@
+# Agent workflow and verification
+
+Inspect git status/branch and read HANDOFF.md once. Define outcome/scope/acceptance/stopping point. Read focused docs, use rg, avoid lockfile/log dumps and keep instructions in AGENTS.md. CLAUDE.md imports it.
+
+Run targeted checks during iteration. Application/config/dependency changes require `npm run check:quiet` (lint, strict types, unit tests, build), then relevant `npm run test:e2e`. The quiet wrapper preserves exit codes, keeps full failure logs in .verification, prints the last 60 lines on failure and removes success logs. Browser tests require a built app and use a separate loopback port with reuseExistingServer=false. No DB or adapters exist yet; add isolated persistence and mock fixtures with their implementation.
+
+Internal docs require link/consistency/diff/whitespace review. Markdown imported by application code requires application checks. CI always starts the Required gate on PRs to main/staging, validates source/destination, classifies internal docs, and explicitly records permitted skips; failures/cancellations do not pass. No top-level path skips. [Local CI provisioning](ops/local-ci.md) documents the dedicated disposable Docker runner.
+
+Before remote operations obtain Local/Cloud, verify capacity, set/read CI_RUNNER, then act and report actual runner. Unset/invalid runner selection queues an unavailable self-hosted label; configure before opening a PR. Forks route only to cloud, never a household runner. Do not attach secrets to fork CI. Workflow uses pull_request, never pull_request_target. A trusted isolated self-hosted hnh-ci runner must have disposable workspaces and no household credentials/services; local development commands are not self-hosted CI.
+
+Bootstrap: create one empty local root commit for main/staging, then put the foundation on chore/project-foundation so the full scaffold is reviewed in a PR to staging. The owner authorized initial pushes and protection setup on 2026-10-25. This is a one-time empty-repository initialization; subsequent changes use protected-branch PRs. The linked remote is https://github.com/BryanChuinkam/home-notifcation-hub. Consult HANDOFF.md for actual provisioning state.
+
+GitHub setup verified 2026-10-25: linked remote; main/staging require PRs and GitHub Actions’ Required gate against an up-to-date base, resolved conversations, blocked deletion/force-push and admin enforcement. Independent approval count is zero for the sole-owner repository; explicit solo owner review remains required by this workflow. CODEOWNERS assigns workflow/routing files to the owner. Automatic merged-task-branch deletion is enabled while permanent branches are protected. See HANDOFF.md for PR/run evidence. Promote staging to main with a merge commit. After merge verify PR record, clean only completed local branches/worktrees and prune.
+
+End tasks with a compact handoff: implemented vs merged vs deployed, branch/base, uncommitted changes, commands/results/tested revision, actual hardware evidence and exact next action. Preserve history in docs/archive only when needed.

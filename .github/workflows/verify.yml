@@ -1,0 +1,62 @@
+name: Verify
+on:
+  pull_request:
+    branches: [staging, main]
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  gate:
+    name: Required gate
+    # Fork code never runs on a household machine. Unset CI_RUNNER queues on an
+    # intentionally unavailable label; it never silently consumes cloud compute.
+    runs-on: ${{ fromJSON(github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || vars.CI_RUNNER == 'cloud' && '["ubuntu-latest"]' || vars.CI_RUNNER == 'local' && '["self-hosted","hnh-ci"]' || '["self-hosted","hnh-ci-unconfigured"]') }}
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Validate PR route
+        run: node scripts/check-pr.mjs
+      - name: Classify changes
+        id: changes
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/classify-change.mjs >> "$GITHUB_OUTPUT"
+      - name: Check whitespace
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git diff --check "$PR_BASE_SHA...$PR_HEAD_SHA"
+      - name: Documentation-only acceptance
+        if: steps.changes.outputs.docs_only == 'true'
+        run: echo 'Internal documentation change; application suites explicitly skipped.'
+      - run: npm ci
+        if: steps.changes.outputs.docs_only != 'true'
+      - run: npm run check:quiet
+        if: steps.changes.outputs.docs_only != 'true'
+      - run: npx playwright install chromium --with-deps
+        if: steps.changes.outputs.docs_only != 'true'
+      - run: npm run test:e2e
+        if: steps.changes.outputs.docs_only != 'true'
+      - name: Retain failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-failure
+          include-hidden-files: true
+          path: |
+            .verification/
+            playwright-report/
+            test-results/

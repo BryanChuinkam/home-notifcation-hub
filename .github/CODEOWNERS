@@ -1,0 +1,5 @@
+# Release routing and CI changes are owned by the repository owner.
+/.github/ @BryanChuinkam
+/scripts/check-pr.mjs @BryanChuinkam
+/scripts/pr-route.mjs @BryanChuinkam
+/scripts/classify-change.mjs @BryanChuinkam

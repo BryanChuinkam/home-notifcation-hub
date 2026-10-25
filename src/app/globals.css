@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1d2d28;
+  --primary: #256049;
+  --primary-foreground: #ffffff;
+  --muted: #eff3ee;
+  --muted-foreground: #52645a;
+  --border: #dce3dc;
+  --input: #b4c0b5;
+  --ring: #256049;
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 2rem; }
+body { margin: 0; background: #f8faf7; color: var(--foreground); font-family: Arial, Helvetica, sans-serif; line-height: 1.5; }
+::selection { background: #d4e7d7; color: #173c2a; }
+a, button, input { -webkit-tap-highlight-color: transparent; }
+a:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+input { caret-color: var(--primary); }
+label { display: block; margin-bottom: .5rem; font-size: .875rem; font-weight: 600; }
+.skip-link { position: absolute; top: -5rem; left: 1rem; z-index: 50; padding: .75rem 1rem; background: white; }
+.skip-link:focus { top: 1rem; }

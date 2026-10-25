@@ -10,7 +10,7 @@ Install with the pinned Node/npm versions and follow README.md. All setup is loc
 | DATABASE_PATH | SQLite file, default ./data/development/hub.sqlite. The parent is created if needed; file mode is 0600, new parent mode 0700, foreign keys/WAL enabled and busy timeout 5 seconds. CI must explicitly supply a separate path. |
 | HUB_SETUP_SECRET | 32–256 character operator-provided secret, generated with npm run setup:secret, stored only in ignored .env.local or a server secret environment. Missing/invalid values disable setup; no fallback credential exists. |
 
-Configuration is read server-side and never exposed through NEXT_PUBLIC_ variables. Restart after changes. Use the configured URL consistently; browsing localhost when APP_ORIGIN uses 127.0.0.1 will intentionally fail origin checks. If using a different local port, update APP_ORIGIN to match.
+Configuration is read server-side and never exposed through NEXT_PUBLIC_ variables. Restart the app launcher after environment or worker/domain changes. Use the configured URL consistently; browsing localhost when APP_ORIGIN uses 127.0.0.1 will intentionally fail origin checks. If using a different local port, update APP_ORIGIN to match.
 
 The initial setup form requires the secret, a 3–32 character ASCII username (letters/numbers/dots/underscores/hyphens) and 12–128 character password. Setup uses Argon2id (19 MiB memory, two passes, one lane), then an immediate SQLite transaction rechecks singleton ownership and inserts the admin and sample devices. Concurrent setup requests cannot create multiple administrators. After success remove the setup secret and restart; setup stays closed. Backing up a credential-containing database requires access controls.
 
@@ -28,7 +28,7 @@ Persistent throttles use a global budget appropriate to one admin: 10 login subm
 
 Migrations are synchronous and transactional. Use one application process and one persistent database for this milestone; shared-file multi-host operation is not supported. Backup/restore procedures must be validated before household pilot deployment. Do not copy only the main file of a live WAL database; use an online SQLite backup or stop writes cleanly.
 
-Three deterministic mock-device rows are created only alongside initial admin setup. They advertise sample text/speech/overlay capabilities but no successful communication or online evidence. Device CRUD and notification dispatch are Milestone 2.
+Three deterministic mock-device rows are created only alongside initial admin setup. They advertise sample text/speech/overlay capabilities but no successful communication or online evidence. Device CRUD and mock notification dispatch are implemented in Milestone 2; see [messaging operations](messaging.md).
 
 ## Test isolation
 

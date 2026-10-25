@@ -2,6 +2,8 @@
 
 A self-hosted household messaging application for macOS and, later, Raspberry Pi 4. Milestones 1–3 provide secure single-administrator access, persistent SQLite storage, mock-device management, a message composer, durable dispatch/retries and per-device delivery history. Home Assistant discovery/registration, notify/TTS dispatch and separate manual test evidence are implemented. Mock sends remain simulated; hardware compatibility must be verified after you configure HA.
 
+Home Assistant installation, onboarding, token creation and speaker/TV setup are covered in the [Home Assistant setup guide](docs/ops/home-assistant.md). `npm run setup:secret` creates only the Hub setup secret; create the HA access token in Home Assistant.
+
 ## Run locally
 
 Use Node 22.23.2 and npm 10.9.8. Native SQLite and Argon2 packages are required; use `nvm use` before installing or running commands.

@@ -15,7 +15,9 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "setup:secret": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('base64url'))\"",
     "worker": "tsx scripts/worker.ts",
-    "worker:once": "tsx scripts/worker.ts --once"
+    "worker:once": "tsx scripts/worker.ts --once",
+    "start:all": "tsx scripts/stack.ts start",
+    "stop:all": "tsx scripts/stack.ts stop"
   },
   "type": "module",
   "dependencies": {

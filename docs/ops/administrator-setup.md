@@ -1,6 +1,29 @@
 # Administrator setup and local operation
 
-Install with the pinned Node/npm versions and follow README.md. All setup is local; this milestone does not expose a service on the LAN or configure certificates.
+This page owns first-time Hub installation, credentials, security and persistence. For an existing installation use [Start everything / stop everything](daily-operations.md); no account setup needs repeating. These steps do not expose the Hub on the LAN or configure certificates.
+
+## First installation
+
+Use Node 22.23.2 and npm 10.9.8. Native SQLite/Argon2 packages are required. From the repository:
+
+```sh
+cd /Users/chui0005/Documents/projects/4fun/home-notification-hub
+nvm use
+npm ci
+```
+
+Only for a new installation without .env.local, copy the example. The condition preserves an existing file:
+
+```sh
+if [ ! -e .env.local ]; then cp .env.example .env.local; fi
+npm run setup:secret
+```
+
+Put the generated value in HUB_SETUP_SECRET in the existing .env.local; the command does not write it automatically. Keep APP_ORIGIN=http://127.0.0.1:3000 for default local access. This secret is the setup form's Server setup secret, not your password or a Home Assistant access token.
+
+Optionally apply migrations explicitly with `npm run db:migrate`; the normal launcher also applies them before starting web/worker. Follow the [daily startup steps](daily-operations.md#start-everything) to start the Hub, then open http://127.0.0.1:3000, create the administrator with the setup secret and your chosen username/password, and sign in. Setup creates the sole administrator and three mock devices atomically. Remove HUB_SETUP_SECRET from .env.local afterward and [restart the Hub](daily-operations.md#restart-or-update); the database keeps setup closed.
+
+For real receivers, separately complete [Home Assistant setup](home-assistant.md) and [receiver configuration](real-devices.md). Mock devices work while HA configuration is blank.
 
 ## Configuration
 

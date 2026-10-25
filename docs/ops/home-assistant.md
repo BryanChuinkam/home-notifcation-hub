@@ -6,27 +6,11 @@ For Google Broadcast room profiles, Android TV overlay appearance, native Compan
 
 ## First run of the Hub
 
-From the repository root, use the pinned Node/npm versions. These are separate commands:
-
-```sh
-nvm use
-npm ci
-cp .env.example .env.local
-npm run setup:secret
-```
-
-For an existing installation keep .env.local and data; do not overwrite them with the example. Put the generated setup secret into HUB_SETUP_SECRET in .env.local. It is not an administrator password and is not set automatically by the command.
-
-```sh
-npm run db:migrate
-npm run dev
-```
-
-Open http://127.0.0.1:3000, create the administrator with the setup secret and your chosen credentials, then sign in. Remove HUB_SETUP_SECRET and restart after setup. npm run dev/start supervise both the web server and queue worker. The HA settings below can be added later without repeating administrator setup.
+Follow [administrator setup](administrator-setup.md#first-installation) for the sole first-installation/env/secret procedure. For daily startup, shutdown and restart, use [Start everything / stop everything](daily-operations.md). The Hub setup secret and HA access token are different credentials; the table below explains them. Keep existing .env.local and data when adding HA later.
 
 ## Prepare a Home Assistant instance separately
 
-These commands install/run the Hub; they do not install Home Assistant. Use an already reachable HA instance or follow the official [macOS installation guide](https://www.home-assistant.io/installation/macos/). It describes HA OS in a VM with bridged networking. The development Mac now runs the UTM instance described below. Its web onboarding was verified during installation; subsequent speaker success is owner-reported, and TV support still needs device-specific validation.
+Installing/running the Hub does not install Home Assistant. Use an already reachable HA instance or follow the official [macOS installation guide](https://www.home-assistant.io/installation/macos/). It describes HA OS in a VM with bridged networking. The development Mac now runs the UTM instance described below. Its web onboarding was verified during installation; subsequent speaker success is owner-reported, and TV support still needs device-specific validation.
 
 Configure notification integrations and any TTS provider/media players in HA first. Confirm the desired action works there before testing from the Hub. HA must have a stable LAN address; reserve it through your normal network administration process rather than relying on an address that may be reassigned. This task does not change router settings.
 
@@ -47,8 +31,8 @@ These are installation steps for a new Mac/VM. For the existing Home Assistant H
 ## Create the Home Assistant token and connect the Hub
 
 1. In Home Assistant, open your user profile → Security → Long-lived access tokens → Create token. Name it Home Notification Hub and copy the generated value directly into the existing Hub .env.local. Use a dedicated integration user where practical; do not put the value in chat or documentation.
-2. Set HOME_ASSISTANT_URL to the HA origin that serves the API directly, HOME_ASSISTANT_ADDRESS to its pinned private IP, and HOME_ASSISTANT_TOKEN to the value from HA. For this VM, the current origin is `http://10.0.0.211` and pinned address is `10.0.0.211`. Keep your other existing .env.local settings and Hub database.
-3. Stop and restart the Hub launcher with `npm run dev` so both web and worker load the new environment. Open `http://127.0.0.1:3000`, matching APP_ORIGIN exactly; localhost and 127.0.0.1 are different origins.
+2. Set HOME_ASSISTANT_URL to the HA origin that serves the API directly, HOME_ASSISTANT_ADDRESS to its pinned private IP, and HOME_ASSISTANT_TOKEN to the value from HA. Use the installed VM address/direct port recorded in the [daily guide](daily-operations.md#start-everything). Keep your other existing .env.local settings and Hub database.
+3. Follow the [Hub restart procedure](daily-operations.md#restart-or-update) so both web and worker load the new environment, then sign in using the exact configured APP_ORIGIN.
 4. In Hub Settings, discover targets, then register a supported target. Use the explicit real-device test flow only when ready for the receiver to make sound/display a message. Record observation only after personally confirming that exact test.
 
 | Credential | Created by | Purpose |
@@ -62,23 +46,9 @@ These are installation steps for a new Mac/VM. For the existing Home Assistant H
 
 Installed on 2026-10-25: notarized UTM 5.0.8, official Home Assistant OS 18.3 generic-aarch64 QCOW2 image. The compressed image SHA-256 was verified against the official GitHub release metadata before extraction. VM **Home Assistant Hub** uses aarch64 QEMU with hardware acceleration and UEFI, 2 vCPUs, 4096 MiB RAM, a 32 GiB virtual VirtIO disk, and bridged Wi-Fi interface en0. It has no shared household folder. Its black UTM preview is not a web dashboard; use the browser.
 
-Current VM address is **http://10.0.0.211/** (HTTP port 80). This installation redirects port 8123 to port 80; the Hub disallows redirects, so its configured origin uses port 80 directly. This DHCP address is not reserved and can change. Verify the VM address after network/restart changes and update both Hub address variables if necessary. No router settings were changed.
+Runtime address/port details, VM status/address commands, startup/shutdown order and persistent-data locations are consolidated in [daily operations](daily-operations.md). Its address is DHCP-assigned and can change; no router settings or automatic startup service were installed. Follow that guide rather than creating another VM for daily use.
 
-The live VM bundle is at `~/Library/Containers/com.utmapp.UTM/Data/Documents/Home Assistant Hub.utm`; source images are outside the repo at `~/Library/Application Support/Home Notification Hub/home-assistant/downloads`. The source download is not a backup of the configured VM. Use Home Assistant's backup facilities after onboarding and retain backups separately; restore has not been tested.
-
-- Start: open UTM, select Home Assistant Hub and choose Play. It is currently running; no Mac login/startup automation was installed.
-- Check status/address in Terminal (macOS may request Automation permission):
-
-```sh
-osascript -e 'tell application "UTM" to get status of virtual machine id "ACA2A5F2-7F28-45D4-B50E-EBDF76329289"'
-osascript -e 'tell application "UTM" to query ip virtual machine id "ACA2A5F2-7F28-45D4-B50E-EBDF76329289"'
-```
-
-The address query requires the guest agent to finish booting; select the physical LAN address, not an internal Docker/ULA address in its output.
-
-- Shutdown: use Home Assistant Settings → System → power menu → Shut down system, then wait for the VM to stop before quitting UTM or shutting down the Mac. Avoid forced Stop during database writes. The shutdown procedure is documented, not exercised against an account with household data.
-- Availability: the Mac must remain awake and UTM must remain running. Sleep settings were not changed.
-- Docker alternative: the official HA container requirements explicitly exclude Docker Desktop and require Docker Engine. A container image was downloaded while evaluating that option, but no HA container or volume was created. UTM is the selected installation. See [official container requirements](https://www.home-assistant.io/installation/linux/#install-home-assistant-container).
+Docker Desktop is not the selected HA host; the official [container requirements](https://www.home-assistant.io/installation/linux/#install-home-assistant-container) exclude Docker Desktop. A container image was downloaded while evaluating it, but no HA container/volume was created.
 
 During installation the URL/address were populated and the token was left blank for owner entry. The owner has since reported speaker success; token contents and account settings were not inspected to document that report. Use the connection steps above for future setup. An empty catalog can mean no supported notification integrations or TTS/player pairs are configured.
 

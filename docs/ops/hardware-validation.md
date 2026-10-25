@@ -1,6 +1,6 @@
 # Hardware research and validation
 
-Research checked 2026-10-25; no integration is implemented, configured, dispatched or physically verified in this repository.
+Research checked 2026-10-25; the initial Home Assistant notify/entity/TTS adapter is implemented and fixture-tested in Milestone 3. No household instance is configured, real household notification dispatched or physical device verified. See [HA setup](home-assistant.md).
 
 | Target | Candidate and limitation |
 | --- | --- |

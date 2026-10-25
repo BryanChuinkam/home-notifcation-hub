@@ -1,3 +1,4 @@
+import { integrationRegistry } from "../src/server/home-assistant/registry";
 import nextEnv from "@next/env";
 import { setTimeout as pause } from "node:timers/promises";
 import { readConfig } from "../src/server/config";
@@ -5,7 +6,7 @@ import { openStore } from "../src/server/db/store";
 import { createMessaging } from "../src/server/notifications/service";
 nextEnv.loadEnvConfig(process.cwd(), process.env.NODE_ENV === "development");
 const store = openStore(readConfig().databasePath);
-const queue = createMessaging(store);
+const queue = createMessaging(store, { adapters: integrationRegistry().adapters });
 const stop = new AbortController();
 for (const signal of ["SIGTERM", "SIGINT"] as const) process.on(signal, () => stop.abort());
 try {

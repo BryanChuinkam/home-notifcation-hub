@@ -1,11 +1,11 @@
 # Environment and deployment plan
 
-No Docker deployment, Home Assistant instance or HTTPS has been provisioned in this task. Only the local development scaffold is runnable.
+No Docker deployment, Home Assistant instance or HTTPS has been provisioned in this task. The local application and optional server-configured HA adapter are runnable; separate staging/pilot application deployments are not provisioned.
 
 | Environment | Process/data boundary | Notifications |
 | --- | --- | --- |
 | Development | loopback 3000, future data/development | mock by default |
-| CI | loopback 3217, disposable temp DB and workspace | mocks only |
+| CI | loopback 3217/3218 plus owned HA fixture 8123, disposable temp DB/workspace | mocks only |
 | Staging | separate hnh-staging Compose project, ports/volumes/secrets | controlled test data/targets |
 | Pilot/production | hnh-pilot project, persistent DB and HA configuration | owner-configured registered targets |
 

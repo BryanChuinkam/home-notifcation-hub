@@ -143,7 +143,7 @@ describe("durable dispatcher", () => {
   const upgraded = openStore(oldPath); connections.push(upgraded); const upgradedAuth = createAuth(upgraded, undefined, () => clock);
   expect(upgradedAuth.session(token)?.username).toBe(credentials.username); expect(upgradedAuth.listDevices(token)).toHaveLength(3);
   expect(upgradedAuth.listDevices(token).every(device => device.mockBehavior === "accept")).toBe(true);
-  expect(upgraded.raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get()).toEqual({ count: 2 });
+  expect(upgraded.raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get()).toEqual({ count: 3 });
   const queue = createMessaging(upgraded, { clock: () => clock }); const id = queue.submit(1, input); await queue.processDue(); expect(queue.detail(id).deliveries.every(target => target.state === "accepted")).toBe(true);
  });
 });

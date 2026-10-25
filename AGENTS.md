@@ -4,7 +4,7 @@ Read HANDOFF.md once at startup, inspect branch and working tree, then load only
 
 ## Authority and bounded work
 
-The supplied [reusable workflow](docs/reference/reusable-project-workflow.txt) and [project adaptation](docs/reference/workflow-adoption.md) govern project management. The [implementation specification](docs/reference/implementation-specification.md) defines the product. The adoption document narrowed the initial task to scaffolding. PRs #1/#2 are merged and promoted to main through PR #3; the owner selected Milestone 2 on 2026-10-25. Follow its bounded plan and stop before live Home Assistant integration.
+The supplied [reusable workflow](docs/reference/reusable-project-workflow.txt) and [project adaptation](docs/reference/workflow-adoption.md) govern project management. The [implementation specification](docs/reference/implementation-specification.md) defines the product. The adoption document narrowed the initial task to scaffolding. PRs #1/#2 are merged and promoted to main through PR #3; Milestone 2 is promoted through PR #5; the owner selected Milestone 3 on 2026-10-25. Follow its bounded plan and stop before unsupported hardware work.
 
 Before substantive changes record outcome, scope, acceptance and stopping point. Complete the selected scope, verify, update HANDOFF.md and the plan, then stop. Prefer one agent. Do not rewrite or repeatedly load the full reference documents.
 
@@ -42,4 +42,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Queue constraints
 
-Only server-owned adapters, currently mock; never accept target URLs or silently fall back. Keep message/delivery creation atomic and recipient IDs unique. Claim work transactionally, call adapters outside locks, enforce bounded deadlines/retries and fence completion by lease token. Preserve snapshots/history on device deletion. A simulated acceptance or device test is not physical verification; do not update physical lastTestAt from mock outcomes. No real network notifications in tests.
+Only server-owned adapters: mock and optionally home_assistant; never accept target URLs or silently fall back. Keep message/delivery creation atomic and recipient IDs unique. Claim work transactionally, call adapters outside locks, enforce bounded deadlines/retries and fence completion by lease token. Preserve snapshots/history on device deletion. A simulated acceptance or device test is not physical verification; do not update physical lastTestAt from mock outcomes. No real household network notifications in tests. HA unit/E2E fixtures are owned loopback doubles with synthetic tokens; browser child apps override all HA env explicitly and refuse fixture-port reuse.
+
+## Home Assistant boundary
+
+Configure HA origin, pinned private/loopback address and token only on the server. Never expose or accept browser tokens, target URLs or arbitrary action names. Keep redirects disabled, TLS verification enabled and methods/paths/deadlines/response sizes bounded. Discovery/registration requires auth and matching Origin; registration re-discovers server-derived capabilities. Do not automatically retry ambiguous HA POST outcomes. Record API dispatch and manual physical observation separately; never fabricate display/speech/acknowledgment. No actual hardware was tested by fixture runs.

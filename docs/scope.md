@@ -2,10 +2,10 @@
 
 Approved long-term requirements are preserved in [the source specification](reference/implementation-specification.md); the [workflow adoption](reference/workflow-adoption.md) governs bounded delivery. The initial documentation/scaffold task is complete and PR #1 is merged into staging.
 
-## Current task: Milestone 2
+## Current task: Milestone 3
 
-The owner selected [the messaging MVP](plans/02-messaging.md) after Milestone 1 was merged into staging/main. Scope: mock-device registration/edit/disable/removal and tests, typed mock adapters, persistent delivery queue, transactional multi-recipient messages, capability validation, bounded retries/recovery, preview composer and per-device history/resend. The pending release handoff is carried forward.
+The owner selected [Home Assistant integration](plans/03-home-assistant.md) after Milestone 2 was promoted to main. Scope: server-only HA URL/address/token configuration, restricted/pinned HTTP transport, read-only discovery, target registration, initial notify/TTS adapter, connection errors, explicit test sends and separate manual test observations. Preserve mock usability and existing database history. The owner will perform initial app/HA setup afterward.
 
-Acceptance: authorized/origin-checked and bounded operations; no partial inserts; unique recipient IDs; processing outside database locks; fenced recovery, deadlines and retry exhaustion; retained removed-device history; tested migration from the Milestone 1 schema; complete desktop/mobile journeys and accessibility checks. All notifications remain simulated. Stop at verified PR delivery; no live credentials, discovery or physical sends.
+Acceptance: safe destination/credential handling, no browser-supplied URLs or arbitrary actions, auth/origin guards, bounded requests/responses, no ambiguous-POST auto-retry, conservative capabilities, API success treated only as dispatch, migration preservation and real-code HTTP plus browser tests against owned fixtures. Stop at verified implementation/PR delivery with exact operator instructions; do not provision credentials, contact household services or claim physical verification.
 
-Deferred: Home Assistant integration and discovery (Milestone 3), physical devices/receiver confirmation, groups/templates, trusted HTTPS, application Compose, tested backup/restore and pilot/Pi deployment. No arbitrary target URLs, cloud database, paid service, Redis/Kubernetes or public exposure is introduced. Registration never proves connectivity; acceptance never proves display, speech or acknowledgment.
+Deferred: model-specific receiver setup, HA overlay/acknowledgment support, Google SDK Broadcast, volume/media restoration, groups/templates, trusted HTTPS/app Compose, tested backup/restore and physical pilot/Pi deployment. No paid services, public exposure or new cloud dependency is introduced.

@@ -1,3 +1,5 @@
+import { integrationRegistry } from "./home-assistant/registry";
+import { homeAssistantHandlers } from "./home-assistant/http";
 import "server-only";
 import { openStore } from "./db/store";
 import { readConfig } from "./config";
@@ -9,8 +11,9 @@ function createRuntime() {
   const config = readConfig();
   const store = openStore(config.databasePath);
   const auth = createAuth(store, config.setupSecret);
-  const messaging = createMessaging(store);
-  return { auth, messaging, handlers: createHandlers(auth, config), messagingHandlers: createMessagingHandlers(auth, messaging, config.origin) };
+  const integrations = integrationRegistry();
+  const messaging = createMessaging(store, { adapters: integrations.adapters });
+  return { auth, messaging, integrationStatus: integrations.status, homeAssistantHandlers: homeAssistantHandlers(auth, messaging, integrations.client, integrations.status, config.origin), handlers: createHandlers(auth, config), messagingHandlers: createMessagingHandlers(auth, messaging, config.origin) };
 }
-const shared = globalThis as typeof globalThis & { hubMessagingRuntime?: ReturnType<typeof createRuntime> };
-export function getRuntime() { return shared.hubMessagingRuntime ??= createRuntime(); }
+const shared = globalThis as typeof globalThis & { hubHomeAssistantRuntime?: ReturnType<typeof createRuntime> };
+export function getRuntime() { return shared.hubHomeAssistantRuntime ??= createRuntime(); }

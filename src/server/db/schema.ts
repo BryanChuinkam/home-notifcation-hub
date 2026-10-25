@@ -1,3 +1,4 @@
+import type { HomeAssistantTarget } from "../../lib/home-assistant";
 import { sql } from "drizzle-orm";
 import { check, integer, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
@@ -15,12 +16,13 @@ export const rateLimits = sqliteTable("rate_limits", {
 export type Capability = "text" | "speech" | "overlay" | "acknowledgment";
 export const devices = sqliteTable("devices", {
   id: text("id").primaryKey(), name: text("name").notNull(), room: text("room").notNull(),
-  type: text("type", { enum: ["speaker", "tv", "computer"] }).notNull(),
-  adapter: text("adapter", { enum: ["mock"] }).notNull(),
+  type: text("type", { enum: ["speaker", "tv", "computer", "phone"] }).notNull(),
+  adapter: text("adapter", { enum: ["mock", "home_assistant"] }).notNull(),
+  haTarget: text("ha_target", { mode: "json" }).$type<HomeAssistantTarget>(), haTargetKey: text("ha_target_key"),
   capabilities: text("capabilities", { mode: "json" }).$type<Capability[]>().notNull(),
   mockBehavior: text("mock_behavior", { enum: ["accept", "dispatch_only", "retry_once", "reject", "offline"] }).notNull().default("accept"),
   enabled: integer("enabled", { mode: "boolean" }).notNull(), lastTestAt: integer("last_test_at"),
-});
+}, table => [uniqueIndex("ha_target_unique").on(table.adapter, table.haTargetKey)]);
 
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(), senderId: integer("sender_id").notNull().references(() => admins.id),
@@ -45,3 +47,9 @@ export const deliveryAttempts = sqliteTable("delivery_attempts", {
   number: integer("number").notNull(), startedAt: integer("started_at").notNull(), completedAt: integer("completed_at"),
   state: text("state", { enum: ["processing", "interrupted", "dispatched", "accepted", "failed"] }).notNull(), errorCode: text("error_code"),
 }, table => [uniqueIndex("attempt_number").on(table.deliveryId, table.number)]);
+
+export const deliveryConfirmations = sqliteTable("delivery_confirmations", {
+  deliveryId: text("delivery_id").primaryKey().references(() => deliveries.id),
+  adminId: integer("admin_id").notNull().references(() => admins.id), observer: text("observer").notNull(),
+  observation: text("observation", { enum: ["displayed", "spoken"] }).notNull(), confirmedAt: integer("confirmed_at").notNull(),
+});

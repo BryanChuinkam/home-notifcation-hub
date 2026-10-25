@@ -55,7 +55,7 @@ describe("persistent authentication", () => {
     expect(auth.session(token)).toEqual({ id: 1, username: credentials.username });
     expect(auth.listDevices(token)).toHaveLength(3);
     expect(auth.listDevices(token).every(device => device.adapter === "mock" && device.lastTestAt === null)).toBe(true);
-    expect(reopened.raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get()).toEqual({ count: 2 });
+    expect(reopened.raw.prepare("SELECT count(*) AS count FROM __drizzle_migrations").get()).toEqual({ count: 3 });
     expect(reopened.raw.pragma("integrity_check", { simple: true })).toBe("ok");
   });
   it("runs the documented migration CLI repeatedly against isolated storage", () => {

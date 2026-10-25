@@ -1,3 +1,4 @@
+import { HA_FIXTURE_TOKEN } from "../fixtures/home-assistant-token";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 const username = "household", password = "e2e-only-password-12345", secret = "e2e-fixture-only-secret-not-for-live-use-123456";
@@ -22,6 +23,24 @@ test("administrator manages mock devices, sends multi-recipient messages, inspec
   await expect(page.getByText("Username or password is incorrect.", { exact: true })).toBeVisible();
   await page.getByLabel("Password", { exact: true }).fill(password); await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Your household", exact: true })).toBeVisible();
+  // Only the unconfigured UI state is doubled; discovery, registration, dispatch and evidence use the real backend plus owned HA fixture.
+  await page.route("**/api/integrations/home-assistant/status", route => route.fulfill({ json: { configured: false, message: "Unconfigured UI fixture" } }));
+  await nav(page, "Settings").click(); await expect(page.getByRole("heading", { name: "Integration settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Discover targets" })).toBeDisabled(); await inspect(page, info, "settings-unconfigured");
+  await page.unroute("**/api/integrations/home-assistant/status"); await page.reload(); await page.getByRole("button", { name: "Discover targets" }).click();
+  await page.getByLabel("Discovered target").selectOption("tts:tts.piper:media_player.living_room"); await page.getByLabel("Room", { exact: true }).fill("Living room"); await inspect(page, info, "settings-discovery");
+  const registration = page.waitForRequest(request => request.url().endsWith("/api/integrations/home-assistant/register"));
+  await page.getByRole("button", { name: "Register target" }).click(); expect((await registration).postDataJSON()).toEqual({ targetId: "tts:tts.piper:media_player.living_room", name: "Living room (Piper)", room: "Living room", type: "speaker" }); await expect(page).toHaveURL(/\/devices$/);
+  await page.getByRole("button", { name: "Send test notification Living room (Piper)", exact: true }).click(); await page.getByRole("button", { name: "Send real test", exact: true }).click();
+  await expect(page.getByText("Dispatched to Home Assistant", { exact: true })).toHaveCount(1); await expect(page.getByRole("button", { name: "Record physical observation" })).toBeVisible();
+  const testRecord = await (await page.request.get(`/api/messages/${page.url().split("/").pop()}`)).json(); expect(testRecord.message.deliveries[0].confirmation).toBeNull();
+  const fixtureRequests = await page.request.get("http://127.0.0.1:8123/__hnh_fixture_requests", { headers: { Authorization: `Bearer ${HA_FIXTURE_TOKEN}` } });
+  expect((await fixtureRequests.json()).some((item: { path: string; body: { message: string; entity_id: string; media_player_entity_id: string } }) => item.path === "/api/services/tts/speak" && item.body.message.includes(testRecord.message.body) && item.body.entity_id === "tts.piper" && item.body.media_player_entity_id === "media_player.living_room")).toBe(true);
+  // Synthetic observation exercises the control; it is not physical hardware evidence.
+  await page.getByRole("button", { name: "Record physical observation" }).click(); await page.getByRole("button", { name: "I heard this test on the speaker" }).click();
+  await expect(page.getByText("Manually observed spoken", { exact: false })).toBeVisible(); await expect(page.getByText("Dispatched to Home Assistant", { exact: true })).toHaveCount(1); await inspect(page, info, "ha-test-evidence");
+  expect(await page.content()).not.toContain(HA_FIXTURE_TOKEN);
+  await nav(page, "Overview").click();
   const cookie = (await page.context().cookies()).find(item => item.name === "hnh_session")!; expect(cookie.httpOnly).toBe(true); expect(cookie.sameSite).toBe("Strict");
   await page.getByRole("checkbox", { name: /Family TV/ }).check(); await page.getByLabel("Message", { exact: true }).fill("Dinner is ready."); await page.getByLabel("Delivery mode").selectOption("speech");
   await expect(page.getByRole("button", { name: "Review message" })).toBeDisabled(); await expect(page.getByText("A selected device cannot support this delivery.", { exact: false })).toBeVisible();
@@ -46,6 +65,9 @@ test("administrator manages mock devices, sends multi-recipient messages, inspec
   await page.getByRole("button", { name: "Resend message" }).click(); await page.getByRole("button", { name: "Confirm resend" }).click(); await expect(page).not.toHaveURL(original);
   await expect(page.getByText("Simulated acceptance", { exact: true })).toHaveCount(2);
   await nav(page, "History").click(); await expect(page.getByRole("link", { name: /Dinner is ready/ })).toHaveCount(2); await inspect(page, info, "history");
+  await nav(page, "Settings").click(); await page.getByRole("button", { name: "Discover targets" }).click(); await page.getByLabel("Discovered target").selectOption("notify-entity:notify.office"); await page.getByLabel("Room", { exact: true }).fill("Study"); await page.getByRole("button", { name: "Register target" }).click(); await expect(page).toHaveURL(/\/devices$/);
+  await nav(page, "Overview").click(); await page.getByLabel("Title", { exact: false }).fill("Integration check"); await page.getByLabel("Message", { exact: true }).fill("Mixed fixture delivery"); await page.getByRole("checkbox", { name: /Family TV/ }).check(); await page.getByRole("checkbox", { name: /Office phone/ }).check(); await page.getByRole("button", { name: "Review message" }).click(); await expect(page.getByText("Real Home Assistant dispatch is included", { exact: false })).toBeVisible(); await page.getByRole("button", { name: "Send message", exact: true }).click();
+  await expect(page.getByText("Dispatched to Home Assistant", { exact: true })).toHaveCount(1); await expect(page.getByText("Simulated acceptance", { exact: true })).toHaveCount(1); await expect(page.getByRole("button", { name: "Record physical observation" })).toHaveCount(0); await inspect(page, info, "mixed-delivery");
   await nav(page, "Devices").click(); await page.getByRole("button", { name: "Remove Kitchen display", exact: true }).click(); await page.getByRole("button", { name: "Confirm removal" }).click();
   await expect(page.getByRole("heading", { name: "Kitchen display", exact: true })).toHaveCount(0);
   await page.goto(original); await expect(page.getByRole("heading", { name: "Kitchen display", exact: true })).toBeVisible(); await page.getByRole("button", { name: "Resend message" }).click(); await page.getByRole("button", { name: "Confirm resend" }).click();

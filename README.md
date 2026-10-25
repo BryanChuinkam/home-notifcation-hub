@@ -1,6 +1,6 @@
 # Home Notification Hub
 
-A self-hosted household messaging application for macOS and, later, Raspberry Pi 4. Milestones 1–2 provide secure single-administrator access, persistent SQLite storage, mock-device management, a message composer, durable dispatch/retries and per-device delivery history. All notification results are simulated; real integrations remain pending.
+A self-hosted household messaging application for macOS and, later, Raspberry Pi 4. Milestones 1–3 provide secure single-administrator access, persistent SQLite storage, mock-device management, a message composer, durable dispatch/retries and per-device delivery history. Home Assistant discovery/registration, notify/TTS dispatch and separate manual test evidence are implemented. Mock sends remain simulated; hardware compatibility must be verified after you configure HA.
 
 ## Run locally
 
@@ -37,7 +37,7 @@ npm run test:e2e
 npm run check:quiet
 ```
 
-Keep development on loopback. Household access from other devices requires a configured HTTPS origin and trusted reverse proxy in the later deployment milestone. HTTP LAN origins are rejected. `/api/health` is public process liveness; `/api/devices` requires an authenticated session. No mock device represents a verified physical receiver, and no notification leaves the application.
+Keep development on loopback. Household access from other devices requires a configured HTTPS origin and trusted reverse proxy in the later deployment milestone. HTTP LAN origins are rejected. `/api/health` is public process liveness; `/api/devices` requires an authenticated session. Mock devices never contact physical receivers. Registered Home Assistant targets can make real calls after explicit setup and send actions. API success is not physical receiver verification.
 
 ## Try mock messaging
 
@@ -49,6 +49,12 @@ Stop any server started before Milestone 2, run `npm ci`, then restart with `npm
 4. Test mock devices from Devices. A simulated test never updates physical test evidence or proves display/speech.
 
 The worker continues independently of the browser. `npm run worker:once` processes one batch of up to 20 currently due deliveries; `npm run worker` starts a standalone worker for troubleshooting. Normal app commands already run a worker. Restart the launcher after changing worker/domain code or environment settings; Next.js still hot-reloads frontend changes. See [messaging operations](docs/ops/messaging.md) for queue semantics and limitations.
+
+## Configure Home Assistant after first setup
+
+The Hub can run with HA variables blank. To use real targets, install/configure a reachable Home Assistant instance separately, set HOME_ASSISTANT_URL, the pinned HOME_ASSISTANT_ADDRESS and HOME_ASSISTANT_TOKEN only on the server, then restart. Open Settings to discover/register supported targets and Devices to explicitly send a test. Confirm physical output separately in its delivery details.
+
+Follow [the complete Home Assistant guide](docs/ops/home-assistant.md), including first-run commands, macOS hosting/networking choices, token setup, allowed addresses/ports, TTS limitations and manual verification. These commands do not install Home Assistant automatically. Keep tokens out of browser fields and chat.
 
 ## Repository map
 
@@ -62,6 +68,7 @@ src/components/ui/         owned shadcn-style Button/Input primitives
 src/server/auth/           credentials, sessions, throttling and HTTP guards
 src/server/db/             typed Drizzle schema and SQLite connection/migrations
 src/server/notifications/  typed adapters, persistent queue and protected APIs
+src/server/home-assistant/ pinned transport, discovery, registration and dispatch
 migrations/                immutable reviewed SQL and Drizzle journal
 scripts/                   migration, isolated E2E/CI and verification tools
 tests/                     persistence/auth tests and desktop/mobile E2E

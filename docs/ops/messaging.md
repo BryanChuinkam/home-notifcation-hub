@@ -1,6 +1,6 @@
 # Mock messaging and queue operation
 
-Milestone 2 is mock-only. Registration accepts the server-owned mock adapter, text/speech/overlay capabilities, computer/speaker/TV categories and deterministic simulated responses. No target URLs, webhooks, Home Assistant tokens or arbitrary adapter names are accepted. Physical delivery, display, speech and acknowledgment are unverified regardless of a mock result.
+Milestone 2 introduced mock-only messaging. Milestone 3 adds separately labeled real Home Assistant dispatch; follow [HA setup](home-assistant.md). The mock behavior described here is unchanged. Registration accepts the server-owned mock adapter, text/speech/overlay capabilities, computer/speaker/TV categories and deterministic simulated responses. Browser registration never accepts target URLs, webhooks, Home Assistant tokens or arbitrary adapter names. HA destinations are derived from a server-configured instance. Physical delivery, display, speech and acknowledgment are unverified regardless of a mock result.
 
 ## Run and upgrade
 
@@ -34,13 +34,13 @@ A claim has a random lease token and 30-second expiry. Expired processing attemp
 
 Delivery is at least once in the face of ambiguous outcomes. Leases and idempotency keys do not guarantee physical exactly-once delivery; a future real receiver must honor the key to deduplicate. The mock adapter performs no network I/O. No live integration was exercised.
 
-Both processes must be running for normal operation. If records stay queued, restart through the documented launcher rather than running only next dev/start. `npm run worker:once` handles one due batch and exits nonzero on processing errors; it does not wait through future retry delays. Public /api/health is process liveness, not queue/readiness or device availability. Retention/pruning and deployment supervision remain later operational work; history grows until an authorized retention feature is added.
+Ambiguous real HA POST outcomes are not automatically retried, and their simulated flag stays false even on failure. Both processes must be running for normal operation. If records stay queued, restart through the documented launcher rather than running only next dev/start. `npm run worker:once` handles one due batch and exits nonzero on processing errors; it does not wait through future retry delays. Public /api/health is process liveness, not queue/readiness or device availability. Retention/pruning and deployment supervision remain later operational work; history grows until an authorized retention feature is added.
 
 ## Device changes and history
 
 Disabling/removing is checked when submitting and again before attempts; already-started calls may finish. Device deletion sets delivery deviceId to null while retaining the friendly-name/adapter snapshot and full attempt history. Queued work then fails as removed. Resend creates a new history entry linked to the original and rejects removed, disabled or incompatible original recipients; compose a new message to choose replacements.
 
-History is paginated at 20 messages with sender, creation time (explicit UTC), recipients, mode/priority, result, sanitized failure reason and expandable attempts. Pending detail pages poll authenticated status; the worker runs without an open browser. Groups/templates, live Home Assistant registration, receiver confirmation and acknowledgments are outside this milestone.
+History is paginated at 20 messages with sender, creation time (explicit UTC), recipients, mode/priority, result, sanitized failure reason and expandable attempts. Pending detail pages poll authenticated status; the worker runs without an open browser. Groups/templates and automatic acknowledgment remain outside this milestone. Milestone 3 implements HA registration and separate manual test observation.
 
 ## Protected endpoints
 
